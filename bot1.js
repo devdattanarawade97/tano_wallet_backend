@@ -37,9 +37,9 @@ bot.on('message', async (msg) => {
         await bot.sendMessage(chatId, "please enter query less than 200 chars");
         return;
     }
-    console.log("chatid: ", chatId);
-    console.log("user entered msg: ", msg_text);
-    console.log("current mode: ", currentMode);
+    // console.log("chatid: ", chatId);
+    // console.log("user entered msg: ", msg_text);
+    // console.log("current mode: ", currentMode);
     let response = null;
 
     if (msg_text == '/gemini' || msg_text == '/gpt') {
@@ -67,7 +67,7 @@ bot.on('message', async (msg) => {
                             ]
                         }
                     };
-                    console.log("web app url: ", url);
+                    // console.log("web app url: ", url);
                     await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
                     break;
 
@@ -212,7 +212,7 @@ bot.on('photo', async (msg) => {
                     ]
                 }
             };
-            console.log("web app url: ", url);
+            // console.log("web app url: ", url);
             await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
 
             // Clean up the temporary file

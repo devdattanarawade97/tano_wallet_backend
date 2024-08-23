@@ -80,7 +80,7 @@ app.post('/parse-image', async (req, res) => {
 
     let response = "";
     const { userId, imageUri , imageMimeType} = req.body;
-    console.log("image uri : ", imageUri);
+    // console.log("image uri : ", imageUri);
     // Optionally, validate the data or process it further
 
     try {
@@ -109,16 +109,16 @@ app.post('/confirm-transaction', async (req, res) => {
 
     let response = "";
     const { boc } = req.body;
-    console.log("boc value : ",boc)
+    // console.log("boc value : ",boc)
     // Optionally, validate the data or process it further
 
     try {
         // Notify the Telegram bot
         const transactionHash = await extractTransactionHash(boc);
-        console.log("tx hash : ",transactionHash)
+        // console.log("tx hash : ",transactionHash)
         const fullTransaction = await client.getFullTransaction(transactionHash);
         let status = fullTransaction.status;
-        console.log("tx status : ",transactionHash)
+        // console.log("tx status : ",transactionHash)
         res.status(200).send({ success: true, status: status });
     } catch (error) {
         console.error("Error sending confirming tx:", error);
@@ -180,7 +180,7 @@ async function getChatCompletionGemini(msg_text) {
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const text = response.text();
-        console.log(text);
+        // console.log(text);
         const completeResponse = `${text}`
         let cleanedResponse = completeResponse.replace(/\*\*/g, '');
         return cleanedResponse;
@@ -228,7 +228,7 @@ async function getChatCompletionGPT(msg_text) {
             ],
         });
 
-        console.log(completion.choices[0].message.content);
+        // console.log(completion.choices[0].message.content);
         const completeResponse = `${completion.choices[0].message.content}`
         let cleanedResponse = completeResponse.replace(/\*\*/g, '');
         return cleanedResponse;
