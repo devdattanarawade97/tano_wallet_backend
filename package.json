@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon npx run bot1.js"
+    "script1": "npx run server.js",
+    "script2": "npx run bot1.js",
+    "start": "npm-run-all --parallel script1 script2"
   },
   "keywords": [],
   "author": "",
@@ -22,6 +24,7 @@
     "https": "^1.0.0",
     "node-telegram-bot-api": "^0.66.0",
     "nodemon": "^3.1.4",
+    "npm-run-all": "^4.1.5",
     "openai": "^4.56.0",
     "tmp": "^0.2.3",
     "ton-client-node-js": "^0.28.0",

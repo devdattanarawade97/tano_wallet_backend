@@ -134,8 +134,31 @@ bot.onText(/\/gpt/, async (msg) => {
 
 
 bot.onText(/\/start/, async (msg) => {
+   try {
+    
+    let chatId = msg.chat.id;
+    let url = "https://tano-wallet.vercel.app";
+    let options = {
+        reply_markup: {
+            inline_keyboard: [
+                [
+                    {
+                        text: 'Connect Wallet',
+                        web_app: { url: url },
+                    },
+                    
+                ]
+            ]
+        }
+    };
+
+    await bot.sendMessage(chatId, "please connect wallet first", options);
     const welcomeMessage = `Welcome to Tano Bot, ${msg.from.first_name}! 🎉\n\nI am here to help you with your tasks. You can start by typing any message.`;
-    await bot.sendMessage(msg.chat.id, welcomeMessage);
+    await bot.sendMessage(chatId, welcomeMessage);
+   } catch (error) {
+     
+       console.log("error ", error.message)
+   }
 
 });
 
