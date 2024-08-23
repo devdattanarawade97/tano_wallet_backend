@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
-
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
@@ -24,6 +23,7 @@
     "node-telegram-bot-api": "^0.66.0",
     "nodemon": "^3.1.4",
     "openai": "^4.56.0",
+    "tmp": "^0.2.3",
     "ton-client-node-js": "^0.28.0",
     "tonweb": "^0.0.66"
   }

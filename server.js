@@ -20,7 +20,7 @@ import OpenAI from "openai";
 const openai = new OpenAI({ apiKey: OPEN_API_KEY });
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 
 //--------------------bot 
@@ -76,6 +76,35 @@ app.post('/notify-transaction', async (req, res) => {
 });
 
 
+app.post('/parse-image', async (req, res) => {
+
+    let response = "";
+    const { userId, imageUri , imageMimeType} = req.body;
+    console.log("image uri : ", imageUri);
+    // Optionally, validate the data or process it further
+
+    try {
+        // Notify the Telegram bot
+        // await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+        //     chat_id: userId,
+        //     text: `Transaction ${transactionId} is ${status}.`
+        // });
+
+       
+
+            response = await getImageCompletionGemini(imageUri, imageMimeType);
+        
+        await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+            chat_id: userId,
+            text: `${response}`
+        });
+
+        res.status(200).send({ success: true, message: 'Notification sent' });
+    } catch (error) {
+        console.error("Error sending notification to Telegram bot:", error);
+        res.status(500).send({ success: false, message: 'Failed to send notification' });
+    }
+});
 app.post('/confirm-transaction', async (req, res) => {
 
     let response = "";
@@ -153,12 +182,34 @@ async function getChatCompletionGemini(msg_text) {
         const text = response.text();
         console.log(text);
         const completeResponse = `${text}`
-        return completeResponse;
+        let cleanedResponse = completeResponse.replace(/\*\*/g, '');
+        return cleanedResponse;
     } catch (error) {
         console.error('Error:', error);
     }
 }
 
+
+async function getImageCompletionGemini(imageUri, imageMimeType) {
+    
+    try {
+          // Generate a text description of the image using Gemini
+          const imageResponse = await model.generateContent([
+            "Tell me about this image.",
+            {
+              fileData: {
+                fileUri: imageUri,
+                mimeType: imageMimeType,
+              },
+            },
+          ]);
+    
+          // Send the generated text description back to the user
+        return imageResponse.response.text();
+    } catch (error) {
+        console.log("error while image completion");
+    }
+}
 
 
 async function getChatCompletionGPT(msg_text) {
@@ -179,7 +230,8 @@ async function getChatCompletionGPT(msg_text) {
 
         console.log(completion.choices[0].message.content);
         const completeResponse = `${completion.choices[0].message.content}`
-        return completeResponse;
+        let cleanedResponse = completeResponse.replace(/\*\*/g, '');
+        return cleanedResponse;
 
 
     } catch (error) {
