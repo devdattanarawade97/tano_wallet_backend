@@ -14,7 +14,7 @@ dotenv.config();
 
 
 const OPEN_API_KEY = process.env.OPEN_API_KEY;
-
+const ORBITDB_PATH = process.env.ORBITDB_PATH;
 // console.log("open ai api key : ", OPEN_API_KEY);
 import OpenAI from "openai";
 const openai = new OpenAI({ apiKey: OPEN_API_KEY });
@@ -23,15 +23,21 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 
-//--------------------bot 
+//--------------------bot----------
+
+import { updateUserDetailsToPinata} from './pinataServices.js';
 import {  Cell } from '@ton/core';
 const endpointUrl = "https://testnet.toncenter.com/api/v2/jsonRPC"; // Replace with your desired endpoint
 const client = new TONClient({ endpoint: endpointUrl });
 import cors from 'cors';
+
 dotenv.config();
 const app = express();
 app.use(express.json());
 const TOKEN = process.env.TOKEN;
+
+
+
 
 // Middleware
 const corsOptions = {
@@ -120,6 +126,23 @@ app.post('/confirm-transaction', async (req, res) => {
         let status = fullTransaction.status;
         // console.log("tx status : ",transactionHash)
         res.status(200).send({ success: true, status: status });
+    } catch (error) {
+        console.error("Error sending confirming tx:", error);
+        res.status(500).send({ success: false, message: 'Failed to send notification' });
+    }
+});
+
+
+app.post('/update-lastused', async (req, res) => {
+
+    
+    const { telegramUserName ,  } = req.body;
+
+    try {
+        let lastUsedTime = null;
+        await updateUserDetailsToPinata(telegramUserName, lastUsedTime , "");
+       
+        res.status(200).send({ success: true, });
     } catch (error) {
         console.error("Error sending confirming tx:", error);
         res.status(500).send({ success: false, message: 'Failed to send notification' });
@@ -238,3 +261,28 @@ async function getChatCompletionGPT(msg_text) {
         console.error('Error:', error);
     }
 }
+
+
+async function getFileCompletionGPT(tempFilePath) {
+    try {
+
+
+        const file = await openai.files.create({
+            file: fs.createReadStream(tempFilePath),
+            purpose: "fine-tune",
+          });
+        
+          console.log(file);
+        return "fine tunned successfully";
+
+
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+//
+
+
+
+  
