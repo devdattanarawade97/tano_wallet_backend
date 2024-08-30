@@ -65,7 +65,7 @@ app.post('/notify-transaction', async (req, res) => {
         //     text: `Transaction ${transactionId} is ${status}.`
         // });
    
-        if (model === 'gpt') {
+        if (model == 'gpt') {
 
             response = await getChatCompletionGPT(msgText);
             console.log("gpt response : ", response);
