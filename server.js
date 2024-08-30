@@ -55,24 +55,36 @@ app.post('/notify-transaction', async (req, res) => {
     const { transactionId, userId, status, msgText, model } = req.body;
 
     // Optionally, validate the data or process it further
-
+    console.log("server user id : ", userId);
+    console.log("server msgText : ", msgText);
+    console.log("server model : ", model);
     try {
         // Notify the Telegram bot
         // await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
         //     chat_id: userId,
         //     text: `Transaction ${transactionId} is ${status}.`
         // });
-
+   
         if (model === 'gpt') {
 
             response = await getChatCompletionGPT(msgText);
+            console.log("gpt response : ", response);
         } else {
             response = await getChatCompletionGemini(msgText);
+            console.log("gemini response : ", response);
         }
-        await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-            chat_id: userId,
-            text: `${response}`
-        });
+        if (response!="") {
+            await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+                chat_id: userId,
+                text: `${response}`
+            });
+    
+        } else {
+            await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+                chat_id: userId,
+                text: `error in response`
+            });
+       }
 
         res.status(200).send({ success: true, message: 'Notification sent' });
     } catch (error) {
@@ -204,6 +216,7 @@ async function getChatCompletionGemini(msg_text) {
         const prompt = msg_text
 
         const result = await model.generateContent(prompt);
+        console.log("gemini completion : ", result);
         const response = await result.response;
         const text = response.text();
         // console.log(text);
@@ -253,7 +266,8 @@ async function getChatCompletionGPT(msg_text) {
                 },
             ],
         });
-
+        
+        console.log("gpt completion : ", completion);
         // console.log(completion.choices[0].message.content);
         const completeResponse = `${completion.choices[0].message.content}`
         let cleanedResponse = completeResponse.replace(/\*\*/g, '');

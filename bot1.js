@@ -58,7 +58,9 @@ bot.on('message', async (msg) => {
     } else if (command && command !== '/start' && command !== '/hey' && command !== '/update') {
         try {
             let encodedMsg = encodeURIComponent(msg_text);
-            let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
+             let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
+            //   let url = `http://localhost:5173/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
+            console.log("url : ", url);
 
             switch (currentMode.toLowerCase()) {
                 case 'gemini':
@@ -69,6 +71,7 @@ bot.on('message', async (msg) => {
                                     {
                                         text: 'Pay',
                                         web_app: { url: url },
+                                        // url: url ,
                                     },
 
                                 ]
@@ -76,6 +79,7 @@ bot.on('message', async (msg) => {
                         }
                     };
                     // console.log("web app url: ", url);
+                    await bot.sendMessage(chatId, `${url}`);
                     await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
                     break;
 
@@ -407,7 +411,7 @@ bot.onText(/\/hey/, async (msg) => {
             } else {
 
                 let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
-                 let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}&chat_id=${chatId}`;
+                 let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}`;
                 //   let url = `http://localhost:5173/?username=${telegramUsername}&charge=${totalCharge}`;
                   console.log("pay url : ",url)
                 const options1 = {
