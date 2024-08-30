@@ -136,12 +136,15 @@ app.post('/confirm-transaction', async (req, res) => {
 app.post('/update-lastused', async (req, res) => {
 
     
-    const { telegramUserName ,  } = req.body;
+    const { telegramUserName ,chatId  } = req.body;
 
     try {
         let lastUsedTime = null;
         await updateUserDetailsToPinata(telegramUserName, lastUsedTime , "");
-       
+        await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+            chat_id: chatId,
+            text: `${"payment successfull . retype your query."}`
+        });
         res.status(200).send({ success: true, });
     } catch (error) {
         console.error("Error sending confirming tx:", error);

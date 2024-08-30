@@ -407,7 +407,7 @@ bot.onText(/\/hey/, async (msg) => {
             } else {
 
                 let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
-                 let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}`;
+                 let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}&chat_id=${chatId}`;
                 //   let url = `http://localhost:5173/?username=${telegramUsername}&charge=${totalCharge}`;
                   console.log("pay url : ",url)
                 const options1 = {
