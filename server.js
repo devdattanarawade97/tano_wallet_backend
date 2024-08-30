@@ -148,7 +148,8 @@ app.post('/confirm-transaction', async (req, res) => {
 app.post('/update-lastused', async (req, res) => {
 
     
-    const { telegramUserName ,chatId  } = req.body;
+    const { telegramUserName, chatId } = req.body;
+    console.log("server chat id : ", chatId);
 
     try {
         let lastUsedTime = null;
