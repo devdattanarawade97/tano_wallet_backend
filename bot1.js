@@ -504,10 +504,10 @@ bot.on('callback_query', async (callbackQuery) => {
 bot.onText(/\/send/, async (msg) => {
     const chatId = msg.chat.id;
     let msg_text = msg.text ? msg.text.trim() : '';
-    if (!previousOutputs[chatId]) {
-        bot.sendMessage(chatId, "No previous output found to send.");
-        return;
-    }
+    // if (!previousOutputs[chatId]) {
+    //     bot.sendMessage(chatId, "No previous output found to send.");
+    //     return;
+    // }
     
   
     
