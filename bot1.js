@@ -517,9 +517,9 @@ bot.onText(/\/send/, async (msg) => {
      if (sendState[chatId]) {
         const groupTag = msg.text.trim();
 
-        if (!groupTag.startsWith('@')) {
-            bot.sendMessage(chatId, "Invalid group tag. Please ensure it starts with '@'.");
-        } else {
+        // if (!groupTag.startsWith('@')) {
+        //     bot.sendMessage(chatId, "Invalid group tag. Please ensure it starts with '@'.");
+        // } else {
             const chat = await bot.getChat(groupTag);
             const senderId = chat.id;
             console.log("sender id : ", senderId);
@@ -542,6 +542,6 @@ bot.onText(/\/send/, async (msg) => {
 
         // Clear the send state after the message is processed
         sendState[chatId] = false;
-    }
+    // }
 });
 
