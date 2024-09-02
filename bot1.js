@@ -501,7 +501,7 @@ bot.on('callback_query', async (callbackQuery) => {
 
 
 // Command to start the send process
-bot.onText(/\/send/, (msg) => {
+bot.onText(/\/send/, async (msg) => {
     const chatId = msg.chat.id;
     let msg_text = msg.text ? msg.text.trim() : '';
     if (!previousOutputs[chatId]) {
@@ -513,14 +513,8 @@ bot.onText(/\/send/, (msg) => {
     
     // Set the user in send state, so we know the next message will be the group info
     sendState[chatId] = true;
-});
-
-// Handle next message (group tag input)
-bot.on('message',async (msg) => {
-    const chatId = msg.chat.id;
-
-    // Check if the user is in send state
-    if (sendState[chatId]) {
+     // Check if the user is in send state
+     if (sendState[chatId]) {
         const groupTag = msg.text.trim();
 
         if (!groupTag.startsWith('@')) {
@@ -550,3 +544,4 @@ bot.on('message',async (msg) => {
         sendState[chatId] = false;
     }
 });
+
