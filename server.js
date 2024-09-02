@@ -70,14 +70,14 @@ app.post('/notify-transaction', async (req, res) => {
             response = await getChatCompletionGPT(msgText);
             console.log("gpt response : ", response);
             // Get the value of x[y] or create an empty array if it doesn't exist
-            let array = previousOut[userId] || [];
+            let array = previousOutputs[userId] || [];
 
             // Push something into the array
             array.push(response);
         } else {
             response = await getChatCompletionGemini(msgText);
             console.log("gemini response : ", response);
-            let array = previousOut[userId] || [];
+            let array = previousOutputs[userId] || [];
 
             // Push something into the array
             array.push(response);
@@ -127,7 +127,7 @@ app.post('/parse-image', async (req, res) => {
         });
 
         res.status(200).send({ success: true, message: 'Notification sent' });
-        let array = previousOut[userId] || [];
+        let array = previousOutputs[userId] || [];
 
         // Push something into the array
         array.push(response);
