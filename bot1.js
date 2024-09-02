@@ -57,7 +57,7 @@ bot.on('message', async (msg) => {
     // console.log("current mode: ", currentMode);
     let response = null;
 
-     if (command && command !== '/start' && command !== '/hey' && command !== '/update') {
+     if (command && command !== '/start' && command !== '/hey' && command !== '/update'&& command !== '/send') {
         try {
             switch (command) {
                 case '/text':
