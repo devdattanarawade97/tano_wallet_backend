@@ -19,7 +19,7 @@ dotenv.config();
 
 const TOKEN = process.env.TOKEN;
 const OPEN_API_KEY = process.env.OPEN_API_KEY;
-const PUBLIC_BACKEND_BASE_URI = process.env.PUBLIC_BACKEND_BASE_URI;
+
 // console.log("open ai api key : ", OPEN_API_KEY);
 import OpenAI from "openai";
 const openai = new OpenAI({ apiKey: OPEN_API_KEY });
@@ -34,11 +34,7 @@ const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
 
 let currentMode = 'gpt';
 let allRetrivedEmbeddings;
-// Storage for previous output (e.g., image URLs or file IDs) per user
 
-
-// Storage to track state of users who are about to send an image
-const sendState = {};
 
 bot.on('message', async (msg) => {
     console.log("on msg command ")
@@ -48,8 +44,8 @@ bot.on('message', async (msg) => {
     let command = commandParts[0];
     console.log("msg text : ", msg_text)
     let modelName = encodeURIComponent(currentMode);
-    if (msg_text.length > 100 && command === '/text') {
-        await bot.sendMessage(chatId, "Please enter a query with less than 100 characters.");
+    if (msg_text.length > 100) {
+        await bot.sendMessage(chatId, "please enter query less than 200 chars");
         return;
     }
     // console.log("chatid: ", chatId);
@@ -57,91 +53,57 @@ bot.on('message', async (msg) => {
     // console.log("current mode: ", currentMode);
     let response = null;
 
-     if (command && command !== '/start' && command !== '/hey' && command !== '/update') {
+    if (command == '/gemini' || command == '/gpt') {
+        response = "Hello! How can I assist you today?";
+    } else if (command && command !== '/start' && command !== '/hey' && command !== '/update') {
         try {
-            switch (command) {
-                case '/text':
-                    
+            let encodedMsg = encodeURIComponent(msg_text);
+             let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
+            //   let url = `http://localhost:5173/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
+            console.log("url : ", url);
+
+            switch (currentMode.toLowerCase()) {
+                case 'gemini':
+                    const options1 = {
+                        reply_markup: {
+                            inline_keyboard: [
+                                [
+                                    {
+                                        text: 'Pay',
+                                        web_app: { url: url },
+                                        // url: url ,
+                                    },
+
+                                ]
+                            ]
+                        }
+                    };
+                    // console.log("web app url: ", url);
+                    await bot.sendMessage(chatId, `${url}`);
+                    await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
+                    break;
+
+                case 'gpt':
                     const options = {
                         reply_markup: {
                             inline_keyboard: [
                                 [
                                     {
-                                        text: 'Gemini Mode',
-                                        callback_data: 'mode_gemini',
+                                        text: 'Pay',
+                                        web_app: { url: url },
                                     },
-                                    {
-                                        text: 'GPT Mode',
-                                        callback_data: 'mode_gpt',
-                                    },
-                                ],
-                            ],
-                        },
+
+                                ]
+                            ]
+                        }
                     };
-                
-                    await bot.sendMessage(chatId, "select model", options);
-
-                    break;
-
-                case '/image':
-                    await bot.sendMessage(chatId, "Please send an image.");
-                    break;
-
-                case '/docs':
-                    await bot.sendMessage(chatId, "Please send a PDF document.");
+                    await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options);
                     break;
 
                 default:
-                    let encodedMsg = encodeURIComponent(msg_text);
-                    let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
-                   //   let url = `http://localhost:5173/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
-                   console.log("url : ", url);
-       
-                   switch (currentMode.toLowerCase()) {
-                       case 'gemini':
-                           const options1 = {
-                               reply_markup: {
-                                   inline_keyboard: [
-                                       [
-                                           {
-                                               text: 'Pay',
-                                               web_app: { url: url },
-                                               // url: url ,
-                                           },
-       
-                                       ]
-                                   ]
-                               }
-                           };
-                           // console.log("web app url: ", url);
-                           await bot.sendMessage(chatId, `${url}`);
-                           await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
-                           break;
-       
-                       case 'gpt':
-                           const options = {
-                               reply_markup: {
-                                   inline_keyboard: [
-                                       [
-                                           {
-                                               text: 'Pay',
-                                               web_app: { url: url },
-                                           },
-       
-                                       ]
-                                   ]
-                               }
-                           };
-                           await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options);
-                           break;
-       
-                       default:
-                           console.warn(`Unknown mode: ${currentMode}`);
-                           response = "Select an LLM model";
-                   }
+                    console.warn(`Unknown mode: ${currentMode}`);
+                    response = "Select an LLM model";
             }
-           
-          
         } catch (error) {
             console.error("Error:", error.message);
             if (error.response && error.response.statusCode === 403) {
@@ -166,19 +128,19 @@ bot.on('message', async (msg) => {
 });
 
 
-// bot.onText(/\/gemini/, async (msg) => {
-//     if (currentMode !== 'gemini') {
-//         currentMode = 'gemini';
+bot.onText(/\/gemini/, async (msg) => {
+    if (currentMode !== 'gemini') {
+        currentMode = 'gemini';
 
-//     }
-// });
-// bot.onText(/\/gpt/, async (msg) => {
-//     if (currentMode !== 'gpt') {
-//         currentMode = 'gpt';
+    }
+});
+bot.onText(/\/gpt/, async (msg) => {
+    if (currentMode !== 'gpt') {
+        currentMode = 'gpt';
 
-//     }
+    }
 
-// });
+});
 
 
 bot.onText(/\/start/, async (msg) => {
@@ -482,71 +444,6 @@ bot.onText(/\/hey/, async (msg) => {
 
 
 
-// Handle callback query for mode selection
-bot.on('callback_query', async (callbackQuery) => {
-    const msg = callbackQuery.message;
-    const data = callbackQuery.data;
-
-    if (data === 'mode_gemini') {
-        currentMode = 'gemini';
-        await bot.sendMessage(msg.chat.id, 'You have selected Gemini mode.');
-    } else if (data === 'mode_gpt') {
-        currentMode = 'gpt';
-        await bot.sendMessage(msg.chat.id, 'You have selected GPT mode.');
-    }
-
-});
 
 
 
-
-// Command to start the send process
-bot.onText(/\/send/, (msg) => {
-    const chatId = msg.chat.id;
-    let msg_text = msg.text ? msg.text.trim() : '';
-    if (!previousOutputs[chatId]) {
-        bot.sendMessage(chatId, "No previous output found to send.");
-        return;
-    }
-    
-  
-    
-    // Set the user in send state, so we know the next message will be the group info
-    sendState[chatId] = true;
-});
-
-// Handle next message (group tag input)
-bot.on('message',async (msg) => {
-    const chatId = msg.chat.id;
-
-    // Check if the user is in send state
-    if (sendState[chatId]) {
-        const groupTag = msg.text.trim();
-
-        if (!groupTag.startsWith('@')) {
-            bot.sendMessage(chatId, "Invalid group tag. Please ensure it starts with '@'.");
-        } else {
-            const chat = await bot.getChat(groupTag);
-            const senderId = chat.id;
-            console.log("sender id : ", senderId);
-            const fetchModelResponse = await fetch(
-                `${PUBLIC_BACKEND_BASE_URI}/send`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        userId: chatId,
-                        senderId:senderId,
-                    }),
-                }
-            );
-            const response = await fetchModelResponse.json(); 
-            console.log("groud send response : ", response);
-        }
-
-        // Clear the send state after the message is processed
-        sendState[chatId] = false;
-    }
-});

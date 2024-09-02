@@ -25,8 +25,8 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 //--------------------bot----------
 
-import { updateUserDetailsToPinata} from './pinataServices.js';
-import {  Cell } from '@ton/core';
+import { updateUserDetailsToPinata } from './pinataServices.js';
+import { Cell } from '@ton/core';
 const endpointUrl = "https://testnet.toncenter.com/api/v2/jsonRPC"; // Replace with your desired endpoint
 const client = new TONClient({ endpoint: endpointUrl });
 import cors from 'cors';
@@ -36,19 +36,19 @@ const app = express();
 app.use(express.json());
 const TOKEN = process.env.TOKEN;
 
-
+const previousOutputs = {};
 
 
 // Middleware
 const corsOptions = {
-    origin: ['http://localhost:3000', 'http://localhost:5173','https://tano-wallet.vercel.app'], // Allow requests from these origins
+    origin: ['http://localhost:3000', 'http://localhost:5173', 'https://tano-wallet.vercel.app'], // Allow requests from these origins
     credentials: true, // Allow cookies to be sent with requests
     methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed HTTP methods
     allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
-  };
-  
+};
+
 app.use(cors(corsOptions));
-  
+
 app.post('/notify-transaction', async (req, res) => {
 
     let response = "";
@@ -64,27 +64,36 @@ app.post('/notify-transaction', async (req, res) => {
         //     chat_id: userId,
         //     text: `Transaction ${transactionId} is ${status}.`
         // });
-   
+
         if (model == 'gpt') {
 
             response = await getChatCompletionGPT(msgText);
             console.log("gpt response : ", response);
+            // Get the value of x[y] or create an empty array if it doesn't exist
+            let array = previousOut[userId] || [];
+
+            // Push something into the array
+            array.push(response);
         } else {
             response = await getChatCompletionGemini(msgText);
             console.log("gemini response : ", response);
+            let array = previousOut[userId] || [];
+
+            // Push something into the array
+            array.push(response);
         }
-        if (response!="") {
+        if (response != "") {
             await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
                 chat_id: userId,
                 text: `${response}`
             });
-    
+
         } else {
             await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
                 chat_id: userId,
                 text: `error in response`
             });
-       }
+        }
 
         res.status(200).send({ success: true, message: 'Notification sent' });
     } catch (error) {
@@ -97,7 +106,7 @@ app.post('/notify-transaction', async (req, res) => {
 app.post('/parse-image', async (req, res) => {
 
     let response = "";
-    const { userId, imageUri , imageMimeType} = req.body;
+    const { userId, imageUri, imageMimeType } = req.body;
     // console.log("image uri : ", imageUri);
     // Optionally, validate the data or process it further
 
@@ -108,16 +117,20 @@ app.post('/parse-image', async (req, res) => {
         //     text: `Transaction ${transactionId} is ${status}.`
         // });
 
-       
 
-            response = await getImageCompletionGemini(imageUri, imageMimeType);
-        
+
+        response = await getImageCompletionGemini(imageUri, imageMimeType);
+
         await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
             chat_id: userId,
             text: `${response}`
         });
 
         res.status(200).send({ success: true, message: 'Notification sent' });
+        let array = previousOut[userId] || [];
+
+        // Push something into the array
+        array.push(response);
     } catch (error) {
         console.error("Error sending notification to Telegram bot:", error);
         res.status(500).send({ success: false, message: 'Failed to send notification' });
@@ -147,13 +160,13 @@ app.post('/confirm-transaction', async (req, res) => {
 
 app.post('/update-lastused', async (req, res) => {
 
-    
+
     const { telegramUserName, chatId } = req.body;
     console.log("server chat id : ", chatId);
 
     try {
         let lastUsedTime = null;
-        await updateUserDetailsToPinata(telegramUserName, lastUsedTime , "");
+        await updateUserDetailsToPinata(telegramUserName, lastUsedTime, "");
         await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
             chat_id: chatId,
             text: `${"payment successfull . retype your query."}`
@@ -165,9 +178,45 @@ app.post('/update-lastused', async (req, res) => {
     }
 });
 
+
+
+
+app.post('/send', async (req, res) => {
+
+    let response = "";
+    const { userId , senderId} = req.body;
+    // console.log("image uri : ", imageUri);
+    // Optionally, validate the data or process it further
+
+    try {
+        // Notify the Telegram bot
+        // await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+        //     chat_id: userId,
+        //     text: `Transaction ${transactionId} is ${status}.`
+        // });
+        let arrayOutput = previousOutputs[userId];
+        let lastMessage = arrayOutput[arrayOutput.length - 1];
+        await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+            chat_id: senderId,
+            text: `${lastMessage}`
+        });
+
+        res.status(200).send({ success: true, message: 'Notification sent' });
+       
+    } catch (error) {
+        console.error("Error sending notification to Telegram bot:", error);
+        res.status(500).send({ success: false, message: 'Failed to send notification' });
+    }
+});
+
+
 app.listen(3000, () => {
     console.log('Backend server running on port 3000');
 });
+
+
+
+
 
 async function extractTransactionHash(boc) {
     try {
@@ -177,12 +226,12 @@ async function extractTransactionHash(boc) {
             throw new Error('Invalid BOC: No cells found');
         }
         const cell = cells[0];
-          // Check if the cell is a transaction
-          if (!cell.isTransaction()) {
+        // Check if the cell is a transaction
+        if (!cell.isTransaction()) {
             throw new Error('Invalid BOC: Expected a transaction cell');
         }
         const transaction = cell.beginParse();
-        console.log("tx : ",transaction)
+        console.log("tx : ", transaction)
         const hash = await transaction.loadHash();
 
 
@@ -192,7 +241,7 @@ async function extractTransactionHash(boc) {
         // // https://go.getblock.io/eb69bcd2dc7a4298b23b88f262598692
         // const hash = transaction.hash;
         // return hash.toString();
-        
+
         //--------using @ton/core
         // const cell = await Cell.fromBoc(boc);
         // const transaction = await client.boc.parseMessage(cell);
@@ -201,10 +250,10 @@ async function extractTransactionHash(boc) {
 
 
 
-      
+
 
     } catch (error) {
-        console.log("error in extracting tx hash ",error)
+        console.log("error in extracting tx hash ", error)
     }
 }
 
@@ -231,20 +280,20 @@ async function getChatCompletionGemini(msg_text) {
 
 
 async function getImageCompletionGemini(imageUri, imageMimeType) {
-    
+
     try {
-          // Generate a text description of the image using Gemini
-          const imageResponse = await model.generateContent([
+        // Generate a text description of the image using Gemini
+        const imageResponse = await model.generateContent([
             "Tell me about this image.",
             {
-              fileData: {
-                fileUri: imageUri,
-                mimeType: imageMimeType,
-              },
+                fileData: {
+                    fileUri: imageUri,
+                    mimeType: imageMimeType,
+                },
             },
-          ]);
-    
-          // Send the generated text description back to the user
+        ]);
+
+        // Send the generated text description back to the user
         return imageResponse.response.text();
     } catch (error) {
         console.log("error while image completion");
@@ -267,7 +316,7 @@ async function getChatCompletionGPT(msg_text) {
                 },
             ],
         });
-        
+
         console.log("gpt completion : ", completion);
         // console.log(completion.choices[0].message.content);
         const completeResponse = `${completion.choices[0].message.content}`
@@ -288,9 +337,9 @@ async function getFileCompletionGPT(tempFilePath) {
         const file = await openai.files.create({
             file: fs.createReadStream(tempFilePath),
             purpose: "fine-tune",
-          });
-        
-          console.log(file);
+        });
+
+        console.log(file);
         return "fine tunned successfully";
 
 
@@ -303,4 +352,13 @@ async function getFileCompletionGPT(tempFilePath) {
 
 
 
-  
+export async function getPreviousOutput() {
+
+
+    try {
+        return previousOutputs;
+    } catch (error) {
+        console.log("error : ", error.message);
+    }
+    
+}
