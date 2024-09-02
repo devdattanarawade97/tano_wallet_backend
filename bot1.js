@@ -538,6 +538,11 @@ bot.onText(/\/send/, async (msg) => {
             );
             const response = await fetchModelResponse.json(); 
             console.log("groud send response : ", response);
+            if (response.status == 200) {
+                await bot.sendMessage(chatId, "msg sent successfully");
+            } else {
+                await bot.sendMessage(chatId, "msg failed to send!");
+            }
         }
 
         // Clear the send state after the message is processed
