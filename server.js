@@ -195,13 +195,27 @@ app.post('/send', async (req, res) => {
         //     text: `Transaction ${transactionId} is ${status}.`
         // });
         let arrayOutput = previousOutputs[userId];
-        let lastMessage = arrayOutput[arrayOutput.length - 1];
-        await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-            chat_id: senderId,
-            text: `${lastMessage}`
-        });
-
-        res.status(200).send({ success: true, message: 'Notification sent' });
+        console.log("array output on server: ", arrayOutput);
+        let lastMessage 
+        if (arrayOutput.length > 0) {
+            lastMessage   = arrayOutput[arrayOutput.length - 1];
+        }
+        console.log("last msg on server : ", lastMessage)
+        if (lastMessage) {
+            await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+                chat_id: senderId,
+                text: `${lastMessage}`
+            });
+    
+            res.status(200).send({ success: true, message: 'Notification sent' });
+        } else {
+            await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+                chat_id: chatId,
+                text: `msg not found`
+            });
+    
+            res.status(200).send({ success: true, message: 'Notification sent' });
+         }
        
     } catch (error) {
         console.error("Error sending notification to Telegram bot:", error);

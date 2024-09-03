@@ -93,8 +93,8 @@ bot.on('message', async (msg) => {
 
                 default:
                     let encodedMsg = encodeURIComponent(msg_text);
-                    let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
-                   //   let url = `http://localhost:5173/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
+                     let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
+                    //  let url = `http://localhost:5173/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
                    console.log("url : ", url);
        
                    switch (currentMode.toLowerCase()) {
