@@ -275,7 +275,7 @@ bot.on('photo', async (msg) => {
 
 //
 bot.on('document', async (msg) => {
-
+    console.log("document type : ",msg.document.mime_type)
     try {
         if (!msg.document || msg.document.mime_type !== 'application/pdf' || msg.document.mime_type !== 'application/csv' || msg.document.mime_type !== 'application/xlsx') {
             console.log('Received message is not a PDF.');
