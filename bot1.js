@@ -7,7 +7,7 @@ import axios from 'axios';
 import path from 'path'
 import fs from 'fs';
 import tmp from 'tmp';
-import { uploadToPinata, retrieveFromPinata, createPinataUser, getAllEmbeddings, updateFilesToPinata, updateUserDetailsToPinata, queryLastUsedBotTimeFromPinata  , retriveTotalChargeFromPinata} from './pinataServices.js';
+import { uploadToPinata, retrieveFromPinata, createPinataUser, getAllEmbeddings, updateFilesToPinata, updateUserDetailsToPinata, queryLastUsedBotTimeFromPinata, retriveTotalChargeFromPinata } from './pinataServices.js';
 import os from 'os';
 import { askQuestionAboutPDF, processFile } from './similarity.js'
 
@@ -33,7 +33,7 @@ const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
 
 
 let userModes = {};
-let allRetrivedEmbeddings;
+let userEmbeddings = {};
 // Storage for previous output (e.g., image URLs or file IDs) per user
 
 
@@ -60,7 +60,7 @@ bot.on('message', async (msg) => {
         try {
             switch (command) {
                 case '/text':
-                    
+
                     const options = {
                         reply_markup: {
                             inline_keyboard: [
@@ -77,7 +77,7 @@ bot.on('message', async (msg) => {
                             ],
                         },
                     };
-                
+
                     await bot.sendMessage(chatId, "select model", options);
 
                     break;
@@ -92,55 +92,55 @@ bot.on('message', async (msg) => {
 
                 default:
                     let encodedMsg = encodeURIComponent(msg_text);
-                     let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
+                    let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
                     //  let url = `http://localhost:5173/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
-                   console.log("url : ", url);
-       
-                   switch (currentMode.toLowerCase()) {
-                       case 'gemini':
-                           const options1 = {
-                               reply_markup: {
-                                   inline_keyboard: [
-                                       [
-                                           {
-                                               text: 'Pay',
-                                               web_app: { url: url },
-                                               // url: url ,
-                                           },
-       
-                                       ]
-                                   ]
-                               }
-                           };
-                           // console.log("web app url: ", url);
-                           await bot.sendMessage(chatId, `${url}`);
-                           await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
-                           break;
-       
-                       case 'gpt':
-                           const options = {
-                               reply_markup: {
-                                   inline_keyboard: [
-                                       [
-                                           {
-                                               text: 'Pay',
-                                               web_app: { url: url },
-                                           },
-       
-                                       ]
-                                   ]
-                               }
-                           };
-                           await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options);
-                           break;
-       
-                       default:
-                           console.warn(`Unknown mode: ${currentMode}`);
-                           response = "Select an LLM model";
-                   }
+                    console.log("url : ", url);
+
+                    switch (currentMode.toLowerCase()) {
+                        case 'gemini':
+                            const options1 = {
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [
+                                            {
+                                                text: 'Pay',
+                                                web_app: { url: url },
+                                                // url: url ,
+                                            },
+
+                                        ]
+                                    ]
+                                }
+                            };
+                            // console.log("web app url: ", url);
+                            await bot.sendMessage(chatId, `${url}`);
+                            await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
+                            break;
+
+                        case 'gpt':
+                            const options = {
+                                reply_markup: {
+                                    inline_keyboard: [
+                                        [
+                                            {
+                                                text: 'Pay',
+                                                web_app: { url: url },
+                                            },
+
+                                        ]
+                                    ]
+                                }
+                            };
+                            await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options);
+                            break;
+
+                        default:
+                            console.warn(`Unknown mode: ${currentMode}`);
+                            response = "Select an LLM model";
+                    }
             }
-           
-          
+
+
         } catch (error) {
             console.error("Error:", error.message);
             if (error.response && error.response.statusCode === 403) {
@@ -261,7 +261,7 @@ bot.on('photo', async (msg) => {
 
 //
 bot.on('document', async (msg) => {
-    console.log("document type : ",msg.document.mime_type)
+    console.log("document type : ", msg.document.mime_type)
     try {
         if (!msg.document || msg.document.mime_type !== 'application/pdf') {
             console.log('Received message is not a PDF.');
@@ -414,30 +414,31 @@ bot.onText(/\/hey/, async (msg) => {
         const parts = msg_text.split(' ');
         let question = parts.slice(2).join(' ');
         console.log("question : ", question)
-        allRetrivedEmbeddings = await getAllEmbeddings(dataProvider)
-        console.log("all retrived embeddings : ", allRetrivedEmbeddings);
-        if (allRetrivedEmbeddings.length > 0) {
+        // Retrieve or initialize embeddings for the user
+        userEmbeddings[chatId] = await getAllEmbeddings(dataProvider);
+        console.log("all retrived embeddings : ", userEmbeddings[chatId]);
+        if (userEmbeddings[chatId].length > 0) {
             let actualLastUsedTime = await queryLastUsedBotTimeFromPinata(telegramUsername);
             console.log("actual last used time :", actualLastUsedTime);
             let diffInMinutes;
             if (actualLastUsedTime !== null) {
-                const timeDiff =currentTime.getTime()- new Date(actualLastUsedTime).getTime() ;
+                const timeDiff = currentTime.getTime() - new Date(actualLastUsedTime).getTime();
 
 
                 diffInMinutes = timeDiff / (1000 * 60);
             }
-            console.log("diff in min : ",diffInMinutes )
-              if (diffInMinutes <= 1 || actualLastUsedTime == null) {
-                const response = await askQuestionAboutPDF(allRetrivedEmbeddings, question)
-                await updateUserDetailsToPinata(telegramUsername, currentTime ,dataProvider);
-              
+            console.log("diff in min : ", diffInMinutes)
+            if (diffInMinutes <= 1 || actualLastUsedTime == null) {
+                const response = await askQuestionAboutPDF(userEmbeddings[chatId], question)
+                await updateUserDetailsToPinata(telegramUsername, currentTime, dataProvider);
+
                 await bot.sendMessage(chatId, response);
             } else {
 
                 let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
-                 let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}&chat_id=${chatId}`;
+                let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}&chat_id=${chatId}`;
                 //   let url = `http://localhost:5173/?username=${telegramUsername}&charge=${totalCharge}`;
-                  console.log("pay url : ",url)
+                console.log("pay url : ", url)
                 const options1 = {
                     reply_markup: {
                         inline_keyboard: [
@@ -481,8 +482,78 @@ bot.on('callback_query', async (callbackQuery) => {
         await bot.sendMessage(msg.chat.id, 'You have selected GPT mode.');
     }
 
-    
+
 });
 
 
 
+// // Function to query Hugging Face and fetch the generated image
+// async function query(data) {
+//     const huggingFaceToken = process.env.HUGGING_FACE;
+//     console.log("token : ", huggingFaceToken);
+
+//     try {
+//         const response = await fetch(
+//             "https://api-inference.huggingface.co/models/bingbangboom/flux_dreamscape", // Make sure this URL is correct
+//             {
+//                 headers: {
+//                     Authorization: `Bearer ${huggingFaceToken}`, // Ensure your Hugging Face token is correct
+//                     "Content-Type": "application/json",
+//                 },
+//                 method: "POST",
+//                 body: JSON.stringify(data),
+//             }
+//         );
+
+//         // Check if response is OK
+//         if (!response.ok) {
+//             const errorDetails = await response.json();
+//             throw new Error(`Failed to fetch image: ${response.statusText} - ${errorDetails.error || 'Unknown error'}`);
+//         }
+
+//         // If the response is not an image, log and throw an error
+//         const contentType = response.headers.get('Content-Type');
+//         if (!contentType.startsWith('image/')) {
+//             const responseText = await response.text();
+//             throw new Error(`Expected image but got: ${contentType} - ${responseText}`);
+//         }
+
+//         // Convert the image response to an arrayBuffer and then to a Buffer for sending
+//         const arrayBuffer = await response.arrayBuffer();
+//         const buffer = Buffer.from(arrayBuffer); // Convert ArrayBuffer to Buffer
+
+//         console.log("buffer : ",buffer)
+//         return buffer;
+//     } catch (error) {
+//         console.error('Error querying Hugging Face API:', error);
+//         throw error; // Re-throw error to handle it in the calling function
+//     }
+// }
+
+// bot.onText(/\/generate/, async (msg) => {
+//     let chatId = msg.chat.id;
+//     const data = { inputs: "Astronaut riding a horse" }; // Input to the Hugging Face model
+
+//     try {
+//         // Call the query function to get the generated image as a buffer
+//         const imageBuffer = await query(data);
+
+//         // Create a temporary file to store the image
+//         const tempFile = tmp.fileSync({ postfix: '.jpg' });
+//         fs.writeFileSync(tempFile.name, imageBuffer); // Save image buffer to the temporary file
+
+//         console.log(`Image stored temporarily at ${tempFile.name}`);
+
+//         // Send the image from the temporary file to the Telegram bot user
+//         await bot.sendPhoto(chatId, tempFile.name, {
+//             caption: "Here is your generated image!",
+//         });
+
+//         // Clean up temporary file after sending
+//         tempFile.removeCallback();
+
+//     } catch (error) {
+//         console.error('Error sending image to Telegram:', error);
+//         bot.sendMessage(chatId, 'Sorry, something went wrong while generating the image.');
+//     }
+// });
