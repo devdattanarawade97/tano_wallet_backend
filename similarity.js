@@ -6,6 +6,7 @@ import path from 'path'
 import os from 'os';
 import dotenv from 'dotenv';
 import { PdfReader } from 'pdfreader'
+import XLSX from 'xlsx'
 dotenv.config();
 
 
@@ -42,18 +43,17 @@ let documentEmbeddings = []; // This could be stored in a database for larger do
 export async function processFile(bufferData) {
 
 
-try {
-    const text = await extractText(bufferData);
+    try {
+        const text = await extractText(bufferData);
 
+        console.log("extracted text : ", text);
 
-    console.log("extracted text : ", text);
- 
-    documentEmbeddings = await generateEmbeddings(text);
-    console.log("Embeddings generated and stored.");
- 
-} catch (error) {
-    console.log("error while processing file : ", error.message);
-    
+        documentEmbeddings = await generateEmbeddings(text);
+        console.log("Embeddings generated and stored.");
+
+    } catch (error) {
+        console.log("error while processing file : ", error.message);
+
     }
     return documentEmbeddings;
 }
@@ -133,4 +133,27 @@ async function extractText(bufferData) {
         console.error('Error extracting text:', error);
         throw error;
     }
+}
+
+
+
+async function extractTextFromCsv(bufferData) {
+    try {
+        const workbook = XLSX.read(bufferData, { type: 'buffer' });
+
+        // Extract the first sheet's name
+        const sheetName = workbook.SheetNames[0];
+
+        // Get the sheet data
+        const worksheet = workbook.Sheets[sheetName];
+
+        // Convert sheet to JSON
+        const data = XLSX.utils.sheet_to_json(worksheet);
+
+        return data.join(' ');;
+    } catch (error) {
+        console.log("error :", error);
+    }
+
+
 }

@@ -32,17 +32,16 @@ const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
 
 
 
-let currentMode = 'gpt';
+let userModes = {};
 let allRetrivedEmbeddings;
 // Storage for previous output (e.g., image URLs or file IDs) per user
 
 
-// Storage to track state of users who are about to send an image
-const sendState = {};
 
 bot.on('message', async (msg) => {
     console.log("on msg command ")
     let chatId = msg.chat.id;
+    let currentMode = userModes[chatId] || 'gpt';  // Default to GPT if not set
     let msg_text = msg.text ? msg.text.trim() : '';
     let commandParts = msg_text.split(' ');
     let command = commandParts[0];
@@ -57,7 +56,7 @@ bot.on('message', async (msg) => {
     // console.log("current mode: ", currentMode);
     let response = null;
 
-     if (command && command !== '/start' && command !== '/hey' && command !== '/update'&& command !== '/send') {
+    if (command && command !== '/start' && command !== '/hey' && command !== '/update' && command !== '/send' && command !== '/generate') {
         try {
             switch (command) {
                 case '/text':
@@ -166,19 +165,6 @@ bot.on('message', async (msg) => {
 });
 
 
-// bot.onText(/\/gemini/, async (msg) => {
-//     if (currentMode !== 'gemini') {
-//         currentMode = 'gemini';
-
-//     }
-// });
-// bot.onText(/\/gpt/, async (msg) => {
-//     if (currentMode !== 'gpt') {
-//         currentMode = 'gpt';
-
-//     }
-
-// });
 
 
 bot.onText(/\/start/, async (msg) => {
@@ -277,7 +263,7 @@ bot.on('photo', async (msg) => {
 bot.on('document', async (msg) => {
     console.log("document type : ",msg.document.mime_type)
     try {
-        if (!msg.document || msg.document.mime_type !== 'application/pdf' || msg.document.mime_type !== 'application/csv' || msg.document.mime_type !== 'application/xlsx') {
+        if (!msg.document || msg.document.mime_type !== 'application/pdf') {
             console.log('Received message is not a PDF.');
             return;
         }
@@ -488,65 +474,13 @@ bot.on('callback_query', async (callbackQuery) => {
     const data = callbackQuery.data;
 
     if (data === 'mode_gemini') {
-        currentMode = 'gemini';
+        userModes[chatId] = 'gemini';  // Store the mode for the specific user
         await bot.sendMessage(msg.chat.id, 'You have selected Gemini mode.');
     } else if (data === 'mode_gpt') {
-        currentMode = 'gpt';
+        userModes[chatId] = 'gpt';  // Store the mode for the specific user
         await bot.sendMessage(msg.chat.id, 'You have selected GPT mode.');
     }
-
 });
 
 
-
-
-// Command to start the send process
-bot.onText(/\/send/, async (msg) => {
-    const chatId = msg.chat.id;
-    let msg_text = msg.text ? msg.text.trim() : '';
-    // if (!previousOutputs[chatId]) {
-    //     bot.sendMessage(chatId, "No previous output found to send.");
-    //     return;
-    // }
-    
-  
-    
-    // Set the user in send state, so we know the next message will be the group info
-    sendState[chatId] = true;
-     // Check if the user is in send state
-     if (sendState[chatId]) {
-        const groupTag = msg.text.trim().split(' ')[1];
-         console.log("group tag : ", groupTag);
-        if (!groupTag.startsWith('@')) {
-            bot.sendMessage(chatId, "Invalid group tag. Please ensure it starts with '@'.");
-        } else {
-            const chat = await bot.getChat(groupTag);
-            const senderId = chat.id;
-            console.log("sender id : ", senderId);
-            const fetchModelResponse = await fetch(
-                `${PUBLIC_BACKEND_BASE_URI}/send`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        userId: chatId,
-                        senderId:senderId,
-                    }),
-                }
-            );
-            const response = await fetchModelResponse.json(); 
-            console.log("groud send response : ", response);
-            if (response.status == 200) {
-                await bot.sendMessage(chatId, "msg sent successfully");
-            } else {
-                await bot.sendMessage(chatId, "msg failed to send!");
-            }
-        }
-
-        // Clear the send state after the message is processed
-        sendState[chatId] = false;
-    }
-});
 
