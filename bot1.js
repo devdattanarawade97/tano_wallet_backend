@@ -480,6 +480,8 @@ bot.on('callback_query', async (callbackQuery) => {
         userModes[chatId] = 'gpt';  // Store the mode for the specific user
         await bot.sendMessage(msg.chat.id, 'You have selected GPT mode.');
     }
+
+    
 });
 
 
