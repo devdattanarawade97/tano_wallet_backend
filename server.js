@@ -55,9 +55,9 @@ app.post('/notify-transaction', async (req, res) => {
     const { transactionId, userId, status, msgText, model } = req.body;
 
     // Optionally, validate the data or process it further
-    console.log("server user id : ", userId);
-    console.log("server msgText : ", msgText);
-    console.log("server model : ", model);
+    // console.log("server user id : ", userId);
+    // console.log("server msgText : ", msgText);
+    // console.log("server model : ", model);
     try {
         // Notify the Telegram bot
         // await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
@@ -68,7 +68,7 @@ app.post('/notify-transaction', async (req, res) => {
         if (model == 'gpt') {
 
             response = await getChatCompletionGPT(msgText);
-            console.log("gpt response : ", response);
+            // console.log("gpt response : ", response);
             // Get the value of x[y] or create an empty array if it doesn't exist
             let array = previousOutputs[userId] || [];
 
@@ -162,7 +162,7 @@ app.post('/update-lastused', async (req, res) => {
 
 
     const { telegramUserName, chatId } = req.body;
-    console.log("server chat id : ", chatId);
+    // console.log("server chat id : ", chatId);
 
     try {
         let lastUsedTime = null;
@@ -195,12 +195,12 @@ app.post('/send', async (req, res) => {
         //     text: `Transaction ${transactionId} is ${status}.`
         // });
         let arrayOutput = previousOutputs[userId];
-        console.log("array output on server: ", arrayOutput);
+        // console.log("array output on server: ", arrayOutput);
         let lastMessage 
         if (arrayOutput.length > 0) {
             lastMessage   = arrayOutput[arrayOutput.length - 1];
         }
-        console.log("last msg on server : ", lastMessage)
+        // console.log("last msg on server : ", lastMessage)
         if (lastMessage) {
             await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
                 chat_id: senderId,
@@ -245,7 +245,7 @@ async function extractTransactionHash(boc) {
             throw new Error('Invalid BOC: Expected a transaction cell');
         }
         const transaction = cell.beginParse();
-        console.log("tx : ", transaction)
+        // console.log("tx : ", transaction)
         const hash = await transaction.loadHash();
 
 
@@ -280,7 +280,7 @@ async function getChatCompletionGemini(msg_text) {
         const prompt = msg_text
 
         const result = await model.generateContent(prompt);
-        console.log("gemini completion : ", result);
+        // console.log("gemini completion : ", result);
         const response = await result.response;
         const text = response.text();
         // console.log(text);
@@ -331,7 +331,7 @@ async function getChatCompletionGPT(msg_text) {
             ],
         });
 
-        console.log("gpt completion : ", completion);
+        // console.log("gpt completion : ", completion);
         // console.log(completion.choices[0].message.content);
         const completeResponse = `${completion.choices[0].message.content}`
         let cleanedResponse = completeResponse.replace(/\*\*/g, '');
@@ -353,7 +353,7 @@ async function getFileCompletionGPT(tempFilePath) {
             purpose: "fine-tune",
         });
 
-        console.log(file);
+        // console.log(file);
         return "fine tunned successfully";
 
 
