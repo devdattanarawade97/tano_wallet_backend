@@ -20,7 +20,6 @@ dotenv.config();
 const TOKEN = process.env.TOKEN;
 const OPEN_API_KEY = process.env.OPEN_API_KEY;
 const PUBLIC_BACKEND_BASE_URI = process.env.PUBLIC_BACKEND_BASE_URI;
-// console.log("open ai api key : ", OPEN_API_KEY);
 import OpenAI from "openai";
 const openai = new OpenAI({ apiKey: OPEN_API_KEY });
 const bot = new telegramBot(TOKEN, { polling: true });
@@ -283,9 +282,9 @@ bot.on('document', async (msg) => {
                 console.log("user entered file name : ", fileName);
                 const documentId = msg.document.file_id;
                 const fileLink = await bot.getFileLink(documentId);
-                console.log("file link : ", fileLink);
+                // console.log("file link : ", fileLink);
 
-                console.log("user name : ", username);
+                // console.log("user name : ", username);
                 // Download the PDF to a temporary file
                 const pdfResponse = await fetch(fileLink);
                 const pdfBuffer = await pdfResponse.arrayBuffer();
@@ -321,9 +320,9 @@ bot.on('document', async (msg) => {
                 console.log("on doc command ")
                 const documentId = msg.document.file_id;
                 const fileLink = await bot.getFileLink(documentId);
-                console.log("file link : ", fileLink);
+                // console.log("file link : ", fileLink);
                 let username = msg.from.username;
-                console.log("user name : ", username);
+                // console.log("user name : ", username);
                 // Download the PDF to a temporary file
                 const pdfResponse = await fetch(fileLink);
                 const pdfBuffer = await pdfResponse.arrayBuffer();
@@ -375,7 +374,7 @@ bot.onText(/\/retrive/, async (msg) => {
         let chatId = msg.chat.id;
         let msg_text = msg.text ? msg.text.trim() : '';
         let ipfsHash = msg_text.split(' ')[1];
-        console.log("ipfs hash: ", ipfsHash);
+        // console.log("ipfs hash: ", ipfsHash);
         // const pinataResponse = await retrieveFromPinata(ipfsHash);
         // console.log("retrived data : ", pinataResponse);
 
@@ -416,10 +415,10 @@ bot.onText(/\/hey/, async (msg) => {
         console.log("question : ", question)
         // Retrieve or initialize embeddings for the user
         userEmbeddings[chatId] = await getAllEmbeddings(dataProvider);
-        console.log("all retrived embeddings : ", userEmbeddings[chatId]);
+        // console.log("all retrived embeddings : ", userEmbeddings[chatId]);
         if (userEmbeddings[chatId].length > 0) {
             let actualLastUsedTime = await queryLastUsedBotTimeFromPinata(telegramUsername);
-            console.log("actual last used time :", actualLastUsedTime);
+            // console.log("actual last used time :", actualLastUsedTime);
             let diffInMinutes;
             if (actualLastUsedTime !== null) {
                 const timeDiff = currentTime.getTime() - new Date(actualLastUsedTime).getTime();
@@ -438,7 +437,7 @@ bot.onText(/\/hey/, async (msg) => {
                 let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
                 let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}&chat_id=${chatId}`;
                 //   let url = `http://localhost:5173/?username=${telegramUsername}&charge=${totalCharge}`;
-                console.log("pay url : ", url)
+                // console.log("pay url : ", url)
                 const options1 = {
                     reply_markup: {
                         inline_keyboard: [
