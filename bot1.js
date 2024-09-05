@@ -472,13 +472,13 @@ bot.onText(/\/hey/, async (msg) => {
 bot.on('callback_query', async (callbackQuery) => {
     const msg = callbackQuery.message;
     const data = callbackQuery.data;
-
+    const chatId = msg.chat.id;
     if (data === 'mode_gemini') {
         userModes[chatId] = 'gemini';  // Store the mode for the specific user
-        await bot.sendMessage(msg.chat.id, 'You have selected Gemini mode.');
+        await bot.sendMessage(chatId, 'You have selected Gemini mode.');
     } else if (data === 'mode_gpt') {
         userModes[chatId] = 'gpt';  // Store the mode for the specific user
-        await bot.sendMessage(msg.chat.id, 'You have selected GPT mode.');
+        await bot.sendMessage(chatId, 'You have selected GPT mode.');
     }
 
 
