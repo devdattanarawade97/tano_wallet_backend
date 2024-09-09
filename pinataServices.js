@@ -4,11 +4,15 @@ import { json } from "stream/consumers";
 import { processFile } from './similarity.js'
 dotenv.config();
 
+
+//pinata config
 const pinata = new PinataSDK({
   pinataJwt: process.env.PINATA_JWT,
   pinataGateway: process.env.PINATA_GETWAY,
 });
 
+//this function used for uploadin file to pinata
+//takes parameter as fileData - means embeddings and telegramuser using 
 export const uploadToPinata = async function (fileData, telegramUsername) {
 
   let upload;
@@ -17,15 +21,16 @@ export const uploadToPinata = async function (fileData, telegramUsername) {
 
     upload = await pinata.upload.json(fileData, {
       metadata: {
-      name:telegramUsername
-    }});
+        name: telegramUsername
+      }
+    });
 
     console.log("pinata file uploaded details :  ", upload);
-  
+
     let parsedIpfsHash = upload.IpfsHash;
     console.log("ipfs hash : ", parsedIpfsHash);
 
-    
+
   } catch (error) {
     console.log(error);
   }
@@ -34,11 +39,15 @@ export const uploadToPinata = async function (fileData, telegramUsername) {
 }
 
 
-export const createPinataUser = async function (telegramUsername, fileName, fileEmbeddings , queryPrice) {
+//this function used for creating new user if the new user is not available in the db .
+//takes param input as telegram username , file name , embeddings , queryprice
+//if the user is not available then new user will be created else the existing user will be updated
+export const createPinataUser = async function (telegramUsername, fileName, fileEmbeddings, queryPrice) {
 
 
 
   try {
+    //to get the list of files 
     const user = await pinata.listFiles().name(telegramUsername)
 
     console.log('user with name : ', user);
@@ -54,7 +63,7 @@ export const createPinataUser = async function (telegramUsername, fileName, file
       ],
       queryPrice: queryPrice,
       totalCharge: null,
-      lastUsed:null,
+      lastUsed: null,
     }
 
     if (user.length == 0) {
@@ -67,15 +76,17 @@ export const createPinataUser = async function (telegramUsername, fileName, file
       userObject.embeddings.push(newEmbeddingObject);
       console.log("new user before uploading pinata : ", userObject)
       console.log("file name before uploading to pinata : ", `${telegramUsername}.json`)
+      //uploading data to pinata 
       await uploadToPinata(userObject, telegramUsername);
 
     } else {
 
+      //retriving user details from pinata using hash 
       const userJson = await retrieveFromPinata(user[0].ipfs_pin_hash);
       console.log("retrived user json : ", userJson)
       let lengthOfFiles = userJson.embeddings.length;
       let uniqueFileName = `${fileName}_${lengthOfFiles + 1}`;
-     
+
       const newEmbeddingObject = {
         id: lengthOfFiles + 1,
         fileName: uniqueFileName,
@@ -98,7 +109,7 @@ export const createPinataUser = async function (telegramUsername, fileName, file
 
 }
 
-
+//this is for retriving user using ipfs hash . which is unique inside the each user details logs
 export const retrieveFromPinata = async function (ipfsHash) {
   try {
     const retrievedData = await pinata.gateways.get(ipfsHash);
@@ -112,12 +123,12 @@ export const retrieveFromPinata = async function (ipfsHash) {
 }
 
 
-
+//this fuction used for deleting the user using ipfs hash 
 export const unpinPinataData = async function (ipfsHash) {
   try {
     const unpinnedData = await pinata.unpin([ipfsHash])
 
-    console.log("unpined data : ",unpinnedData )
+    console.log("unpined data : ", unpinnedData)
   } catch (error) {
     console.error("Error retrieving data from Pinata:", error);
     throw error;
@@ -125,9 +136,11 @@ export const unpinPinataData = async function (ipfsHash) {
 }
 
 
-export const getAllEmbeddings= async function (telegramUsername) {
-  
-  let allEmbeddings=[];
+//this is used for getting all the stored embeddings from pinata using the user name
+//each user is uniquely identified using username
+export const getAllEmbeddings = async function (telegramUsername) {
+
+  let allEmbeddings = [];
   try {
     const user = await pinata.listFiles().name(telegramUsername)
 
@@ -146,32 +159,32 @@ export const getAllEmbeddings= async function (telegramUsername) {
 
 
 
+//this is used for updating existing files to pinata .
+export const updateFilesToPinata = async function (telegramUsername, fileName, pdfBuffer) {
 
-export const updateFilesToPinata= async function (telegramUsername, fileName , pdfBuffer) {
-  
   let response;
-  
+
   try {
     const user = await pinata.listFiles().name(telegramUsername)
     console.log('user with name : ', user);
-    if (user.length>0) {
+    if (user.length > 0) {
       console.log('user found');
       let newEmbeddings = await processFile(pdfBuffer);
-    
+
       const userJson = await retrieveFromPinata(user[0].ipfs_pin_hash);
       userJson.embeddings.forEach(element => {
         console.log("actual file name : ", element.fileName);
         console.log("entered file name : ", fileName);
         console.log("entered file name and actual file are equal ?  : ", element.fileName === fileName);
-      
+
         if (element.fileName === fileName) {
           console.log("matching file found");
-          element['embedding'] =newEmbeddings;
-          
+          element['embedding'] = newEmbeddings;
+
         } else {
           response = "file not found!";
         }
-      
+
       });
       await uploadToPinata(userJson, telegramUsername);
       await unpinPinataData(user[0].ipfs_pin_hash);
@@ -181,18 +194,19 @@ export const updateFilesToPinata= async function (telegramUsername, fileName , p
       console.log('user not found');
       // await createPinataUser(telegramUsername, fileName, newEmbeddings);
       response = 'user not found. please upload file first';
-     }
+    }
   } catch (error) {
     console.log("error while updating file : ", error.mgessage);
     response = "error while updating file";
   }
- 
+
   return response;
 }
 
 
+//this function basically used whenever user queries the total charge and the last used time will be recalculated and updated accordingly for each query to maintain the used session
 
-export const updateUserDetailsToPinata= async function (telegramUsername,lastUsedTime , dataProvider) {
+export const updateUserDetailsToPinata = async function (telegramUsername, lastUsedTime, dataProvider) {
   let retrivedQueryPrice;
   try {
     const user = await pinata.listFiles().name(telegramUsername)
@@ -201,11 +215,11 @@ export const updateUserDetailsToPinata= async function (telegramUsername,lastUse
     const userJson = await retrieveFromPinata(user[0].ipfs_pin_hash);
     userJson.lastUsed = lastUsedTime;
 
-   
+
     if (dataProvider !== "") {
-      retrivedQueryPrice  = await retriveQueryPriceFromPinata(dataProvider);
+      retrivedQueryPrice = await retriveQueryPriceFromPinata(dataProvider);
     }
-    let updatedTotalUsedCharge = userJson.totalCharge==null?0+Number(retrivedQueryPrice):Number(userJson.totalCharge)+Number(retrivedQueryPrice);
+    let updatedTotalUsedCharge = userJson.totalCharge == null ? 0 + Number(retrivedQueryPrice) : Number(userJson.totalCharge) + Number(retrivedQueryPrice);
     console.log("updated total charge : ", updatedTotalUsedCharge);
     userJson.totalCharge = updatedTotalUsedCharge;
     await uploadToPinata(userJson, telegramUsername);
@@ -215,21 +229,25 @@ export const updateUserDetailsToPinata= async function (telegramUsername,lastUse
   } catch (error) {
     console.log("error while getting all embeddings : ", error.mgessage);
   }
- 
+
 }
-export const queryLastUsedBotTimeFromPinata= async function (telegramUsername) {
-  let lastUsedTime=null;
+
+
+//this function is used basically to fetch the last used time from pinata using username
+
+export const queryLastUsedBotTimeFromPinata = async function (telegramUsername) {
+  let lastUsedTime = null;
   try {
     const user = await pinata.listFiles().name(telegramUsername)
 
     if (user.length > 0) {
       console.log('user with name : ', user);
       const userJson = await retrieveFromPinata(user[0].ipfs_pin_hash);
-     
+
       lastUsedTime = userJson.lastUsed;
-      console.log("lastUsedTime : ",lastUsedTime);
+      console.log("lastUsedTime : ", lastUsedTime);
     } else {
-      
+
       const userObject = {
         userName: telegramUsername,
         embeddings: [
@@ -241,10 +259,10 @@ export const queryLastUsedBotTimeFromPinata= async function (telegramUsername) {
         ],
         queryPrice: null,
         totalCharge: null,
-        lastUsed:null,
+        lastUsed: null,
       }
       await uploadToPinata(userObject, telegramUsername);
-     }
+    }
 
   } catch (error) {
     console.log("error while getting last used time : ", error.mgessage);
@@ -252,19 +270,20 @@ export const queryLastUsedBotTimeFromPinata= async function (telegramUsername) {
 
 
   return lastUsedTime;
- 
+
 }
 
-export const retriveTotalChargeFromPinata= async function (telegramUsername) {
+//this function is used for retriving user specific total charge 
+export const retriveTotalChargeFromPinata = async function (telegramUsername) {
   let totalUsedCharge;
   try {
     const user = await pinata.listFiles().name(telegramUsername)
 
     console.log('user with name : ', user);
     const userJson = await retrieveFromPinata(user[0].ipfs_pin_hash);
-   
+
     totalUsedCharge = userJson.totalCharge;
-    console.log("total charge : ",totalUsedCharge);
+    console.log("total charge : ", totalUsedCharge);
 
   } catch (error) {
     console.log("error while getting total charge : ", error.mgessage);
@@ -272,26 +291,22 @@ export const retriveTotalChargeFromPinata= async function (telegramUsername) {
 
 
   return Number(totalUsedCharge);
- 
+
 }
 
 
-
-
- 
-
-
+//this is for the fetching the user specific query charge set by the user
 export const retriveQueryPriceFromPinata = async function (telegramUsername) {
-  
+
   let retrivedQueryPrice;
   try {
     const user = await pinata.listFiles().name(telegramUsername)
 
     console.log('user with name : ', user);
     const userJson = await retrieveFromPinata(user[0].ipfs_pin_hash);
-   
+
     retrivedQueryPrice = userJson.queryPrice;
-    console.log("retrived query price : ",retrivedQueryPrice);
+    console.log("retrived query price : ", retrivedQueryPrice);
 
   } catch (error) {
     console.log("error while getting total charge : ", error.mgessage);
@@ -299,5 +314,5 @@ export const retriveQueryPriceFromPinata = async function (telegramUsername) {
 
 
   return retrivedQueryPrice;
- 
+
 }

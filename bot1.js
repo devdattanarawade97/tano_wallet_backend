@@ -10,17 +10,19 @@ import tmp from 'tmp';
 import { uploadToPinata, retrieveFromPinata, createPinataUser, getAllEmbeddings, updateFilesToPinata, updateUserDetailsToPinata, queryLastUsedBotTimeFromPinata, retriveTotalChargeFromPinata } from './pinataServices.js';
 import os from 'os';
 import { askQuestionAboutPDF, processFile } from './similarity.js'
-
+import OpenAI from "openai";
 // Access your API key as an environment variable (see "Set up your API key" above)
 
 // const Symbiosis = require("@symbiosis/sdk").default;
 // import { Symbiosis } from "symbiosis-js-sdk";
 dotenv.config();
-
+//bot token
 const TOKEN = process.env.TOKEN;
+//open ai api key
 const OPEN_API_KEY = process.env.OPEN_API_KEY;
+//public base backend url 
 const PUBLIC_BACKEND_BASE_URI = process.env.PUBLIC_BACKEND_BASE_URI;
-import OpenAI from "openai";
+//open ai and gemini config
 const openai = new OpenAI({ apiKey: OPEN_API_KEY });
 const bot = new telegramBot(TOKEN, { polling: true });
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -30,13 +32,14 @@ const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
 // console.log("gemini token : ", process.env.GEMINI_API_KEY)
 
 
-
+//user specific AI model storing
+//user specific embeddings storing
 let userModes = {};
 let userEmbeddings = {};
 // Storage for previous output (e.g., image URLs or file IDs) per user
 
 
-
+//1 bot on msg 
 bot.on('message', async (msg) => {
     console.log("on msg command ")
     let chatId = msg.chat.id;
@@ -46,6 +49,8 @@ bot.on('message', async (msg) => {
     let command = commandParts[0];
     console.log("msg text : ", msg_text)
     let modelName = encodeURIComponent(currentMode);
+
+    //restricting user for entering text more than 100 chars as AI model prompt have token limits 
     if (msg_text.length > 100 && command === '/text') {
         await bot.sendMessage(chatId, "Please enter a query with less than 100 characters.");
         return;
@@ -53,8 +58,9 @@ bot.on('message', async (msg) => {
     // console.log("chatid: ", chatId);
     // console.log("user entered msg: ", msg_text);
     // console.log("current mode: ", currentMode);
-    let response = null;
 
+    let response = null;
+    //we are checking user hasnot entered any command with msg then only we are allowing to proceed with this if 
     if (command && command !== '/start' && command !== '/hey' && command !== '/update' && command !== '/send' && command !== '/generate') {
         try {
             switch (command) {
@@ -165,7 +171,7 @@ bot.on('message', async (msg) => {
 
 
 
-
+//  start command - when user enters /start command then wallet connect and welcome msg will be sent to user 
 bot.onText(/\/start/, async (msg) => {
     console.log("on start command ")
     try {
@@ -196,15 +202,20 @@ bot.onText(/\/start/, async (msg) => {
 
 });
 
+
+//when user sends photo to bot 
 bot.on('photo', async (msg) => {
     console.log("on photo command ")
     try {
         let chatId = msg.chat.id;
+        //get the file id for uploaded pdf
         const photoId = msg.photo[msg.photo.length - 1].file_id;
+        //getting file link for uploaded pdf 
         const fileLink = await bot.getFileLink(photoId);
 
         // Download the image to a temporary file
         const imgResponse = await fetch(fileLink);
+        //get array buffer for response
         const buffer = await imgResponse.arrayBuffer();
 
         // Create a temporary file using tmp
@@ -229,6 +240,7 @@ bot.on('photo', async (msg) => {
             let imageMimeType = uploadResult.file.mimeType;
             let encodedImageUri = encodeURIComponent(imageUri);
             let encodedImageMime = encodeURIComponent(imageMimeType);
+            //creating url for user uploaded image with chatid .once the user does the payment the backend url will get hit for image computation
             let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&imageUri=${imageUri}&imageMimeType=${imageMimeType}`;
             // let url = `http://localhost:5173/?chat_id=${chatId}&imageUri=${encodedImageUri}&imageMimeType=${encodedImageMime}`;
             const options1 = {
@@ -248,7 +260,7 @@ bot.on('photo', async (msg) => {
             await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
 
             // Clean up the temporary file
-
+            //cleaning up the temo generated file using below function
             cleanupCallback()
         });
     } catch (error) {
@@ -258,7 +270,8 @@ bot.on('photo', async (msg) => {
 });
 
 
-//
+// when user sends the document to bot with caption that includes price of the each query
+//note -   user have to sent price of the query in the caption while uploading each file 
 bot.on('document', async (msg) => {
     console.log("document type : ", msg.document.mime_type)
     try {
@@ -266,12 +279,17 @@ bot.on('document', async (msg) => {
             console.log('Received message is not a PDF.');
             return;
         }
-
+        //chat id 
         let chatId = msg.chat.id;
         let msg_text = msg.text ? msg.text.trim() : '';
+        //caption text for entering price of the query 
         let caption = msg.caption;
         console.log("msg captiopn :  ", caption)
+
+        //check whether user has entered /update command in the caption or not 
         if (caption && caption.includes('/update')) {
+
+            //when user want to update existing file 
             console.log("on update command ")
             let response;
             try {
@@ -281,6 +299,7 @@ bot.on('document', async (msg) => {
                 let fileName = caption.split(" ")[1];
                 console.log("user entered file name : ", fileName);
                 const documentId = msg.document.file_id;
+                //get the file link
                 const fileLink = await bot.getFileLink(documentId);
                 // console.log("file link : ", fileLink);
 
@@ -304,10 +323,11 @@ bot.on('document', async (msg) => {
                 // });
                 await bot.sendMessage(chatId, `processing document....please wait!`);
 
-
+                //uploading file data to pinata
                 const response = await updateFilesToPinata(username, fileName, pdfBuffer)
 
                 await bot.sendMessage(chatId, response);
+
             } catch (error) {
 
                 console.log("error ", error.message)
@@ -344,13 +364,17 @@ bot.on('document', async (msg) => {
 
 
                 if (caption !== undefined) {
+                    //processing file will extract the data and generates the embeddings 
                     let docEmebeddings = await processFile(pdfBuffer);
+                    //basically firstly we are checking whether user available or not. also if the embeddings not generated properly then we are sending msg like something went wrong
+
                     if (docEmebeddings.length > 0) {
                         const createNewUser = await createPinataUser(username, "abcd", docEmebeddings, caption);
 
 
                         await bot.sendMessage(chatId, `A PDF document has been received.`);
                     } else {
+
                         await bot.sendMessage(chatId, `something went wrong`);
                     }
                 } else {
@@ -397,6 +421,7 @@ bot.onText(/\/retrive/, async (msg) => {
 });
 
 
+//on hey command - this command is basically for if someone wants to access his own or others resources . so basicaly he have to type the command like /hey @username query 
 
 bot.onText(/\/hey/, async (msg) => {
 
@@ -417,9 +442,12 @@ bot.onText(/\/hey/, async (msg) => {
         userEmbeddings[chatId] = await getAllEmbeddings(dataProvider);
         // console.log("all retrived embeddings : ", userEmbeddings[chatId]);
         if (userEmbeddings[chatId].length > 0) {
+            //firstly we are checking the last used time from the db . if the user inactive for greater than one min then user have to pay for the last used session and as soon as 
+            //payments completes the user time will get set to null
             let actualLastUsedTime = await queryLastUsedBotTimeFromPinata(telegramUsername);
             // console.log("actual last used time :", actualLastUsedTime);
             let diffInMinutes;
+            //initially user time will be set to null 
             if (actualLastUsedTime !== null) {
                 const timeDiff = currentTime.getTime() - new Date(actualLastUsedTime).getTime();
 
@@ -427,13 +455,15 @@ bot.onText(/\/hey/, async (msg) => {
                 diffInMinutes = timeDiff / (1000 * 60);
             }
             console.log("diff in min : ", diffInMinutes)
+            //if the inactivity time is less than 1 then user will ask question
             if (diffInMinutes <= 1 || actualLastUsedTime == null) {
+
                 const response = await askQuestionAboutPDF(userEmbeddings[chatId], question)
                 await updateUserDetailsToPinata(telegramUsername, currentTime, dataProvider);
 
                 await bot.sendMessage(chatId, response);
             } else {
-
+                //else user have to pay for the last used session
                 let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
                 let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}&chat_id=${chatId}`;
                 //   let url = `http://localhost:5173/?username=${telegramUsername}&charge=${totalCharge}`;

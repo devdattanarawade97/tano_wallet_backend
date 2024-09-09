@@ -14,7 +14,7 @@ dotenv.config();
 
 
 const OPEN_API_KEY = process.env.OPEN_API_KEY;
-const ORBITDB_PATH = process.env.ORBITDB_PATH;
+
 // console.log("open ai api key : ", OPEN_API_KEY);
 import OpenAI from "openai";
 const openai = new OpenAI({ apiKey: OPEN_API_KEY });
@@ -36,7 +36,6 @@ const app = express();
 app.use(express.json());
 const TOKEN = process.env.TOKEN;
 
-const previousOutputs = {};
 
 
 // Middleware
@@ -47,8 +46,10 @@ const corsOptions = {
     allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
 };
 
+//cors 
 app.use(cors(corsOptions));
 
+//this endpoint will get invoked when user does the payment  . this is for the purpose of sending msg to user . msg contains the gpt or gemini based text output
 app.post('/notify-transaction', async (req, res) => {
 
     let response = "";
@@ -102,7 +103,7 @@ app.post('/notify-transaction', async (req, res) => {
     }
 });
 
-
+//this endpoint will get hit when user makes the payment for the uploaded images . currently we are using the gemini only for this .
 app.post('/parse-image', async (req, res) => {
 
     let response = "";
@@ -136,6 +137,8 @@ app.post('/parse-image', async (req, res) => {
         res.status(500).send({ success: false, message: 'Failed to send notification' });
     }
 });
+
+
 app.post('/confirm-transaction', async (req, res) => {
 
     let response = "";
@@ -157,6 +160,7 @@ app.post('/confirm-transaction', async (req, res) => {
     }
 });
 
+//we are using this endpoint for the purpose of updating user last used time into db
 
 app.post('/update-lastused', async (req, res) => {
 
@@ -181,47 +185,6 @@ app.post('/update-lastused', async (req, res) => {
 
 
 
-app.post('/send', async (req, res) => {
-
-    let response = "";
-    const { userId , senderId} = req.body;
-    // console.log("image uri : ", imageUri);
-    // Optionally, validate the data or process it further
-
-    try {
-        // Notify the Telegram bot
-        // await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-        //     chat_id: userId,
-        //     text: `Transaction ${transactionId} is ${status}.`
-        // });
-        let arrayOutput = previousOutputs[userId];
-        // console.log("array output on server: ", arrayOutput);
-        let lastMessage 
-        if (arrayOutput.length > 0) {
-            lastMessage   = arrayOutput[arrayOutput.length - 1];
-        }
-        // console.log("last msg on server : ", lastMessage)
-        if (lastMessage) {
-            await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-                chat_id: senderId,
-                text: `${lastMessage}`
-            });
-    
-            res.status(200).send({ success: true, message: 'Notification sent' });
-        } else {
-            await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
-                chat_id: chatId,
-                text: `msg not found`
-            });
-    
-            res.status(200).send({ success: true, message: 'Notification sent' });
-         }
-       
-    } catch (error) {
-        console.error("Error sending notification to Telegram bot:", error);
-        res.status(500).send({ success: false, message: 'Failed to send notification' });
-    }
-});
 
 
 app.listen(3000, () => {
@@ -271,6 +234,8 @@ async function extractTransactionHash(boc) {
     }
 }
 
+
+//this is for the chat completion using gemini
 async function getChatCompletionGemini(msg_text) {
     try {
 
@@ -293,6 +258,7 @@ async function getChatCompletionGemini(msg_text) {
 }
 
 
+//this is for the image completion using gemini
 async function getImageCompletionGemini(imageUri, imageMimeType) {
 
     try {
@@ -315,6 +281,7 @@ async function getImageCompletionGemini(imageUri, imageMimeType) {
 }
 
 
+//this if for the text completion using gpt
 async function getChatCompletionGPT(msg_text) {
     try {
 
@@ -343,36 +310,3 @@ async function getChatCompletionGPT(msg_text) {
     }
 }
 
-
-async function getFileCompletionGPT(tempFilePath) {
-    try {
-
-
-        const file = await openai.files.create({
-            file: fs.createReadStream(tempFilePath),
-            purpose: "fine-tune",
-        });
-
-        // console.log(file);
-        return "fine tunned successfully";
-
-
-    } catch (error) {
-        console.error('Error:', error);
-    }
-}
-
-//
-
-
-
-export async function getPreviousOutput() {
-
-
-    try {
-        return previousOutputs;
-    } catch (error) {
-        console.log("error : ", error.message);
-    }
-    
-}

@@ -19,7 +19,7 @@ import OpenAI from "openai";
 
 const openai = new OpenAI({ apiKey: OPEN_API_KEY });
 
-
+//this will generate embeddings for each 2000 chars . firstly docs will be splitted into 2000 chars 
 async function generateEmbeddings(text) {
     const chunks = text.match(/.{1,2000}(\s|$)/g); // Split text into chunks of 2000 characters
     const embeddings = [];
@@ -109,6 +109,7 @@ function cosineSimilarity(vecA, vecB) {
 }
 
 
+//this will be used for extracting text from the buffer data .
 async function extractText(bufferData) {
     try {
 
