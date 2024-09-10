@@ -273,10 +273,17 @@ bot.on('photo', async (msg) => {
 // when user sends the document to bot with caption that includes price of the each query
 //note -   user have to sent price of the query in the caption while uploading each file 
 bot.on('document', async (msg) => {
-    console.log("document type : ", msg.document.mime_type)
+   
+
+    let docType = msg.document.mime_type;
+    console.log("document type : ", docType)
     try {
-        if (!msg.document || msg.document.mime_type !== 'application/pdf') {
-            console.log('Received message is not a PDF.');
+        // if (!msg.document || msg.document.mime_type !== 'application/pdf' ||msg.document.mime_type!=='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+        //     console.log('Received message is not a PDF.');
+        //     return;
+        // }
+         if (!msg.document) {
+            console.log('Received message is not a document type.');
             return;
         }
         //chat id 
@@ -365,7 +372,7 @@ bot.on('document', async (msg) => {
 
                 if (caption !== undefined) {
                     //processing file will extract the data and generates the embeddings 
-                    let docEmebeddings = await processFile(pdfBuffer);
+                    let docEmebeddings = await processFile(pdfBuffer , docType);
                     //basically firstly we are checking whether user available or not. also if the embeddings not generated properly then we are sending msg like something went wrong
 
                     if (docEmebeddings.length > 0) {

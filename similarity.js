@@ -6,9 +6,9 @@ import path from 'path'
 import os from 'os';
 import dotenv from 'dotenv';
 import { PdfReader } from 'pdfreader'
-import XLSX from 'xlsx'
+import {read} from 'xlsx'
 dotenv.config();
-
+import * as xlsx from 'xlsx';
 
 const OPEN_API_KEY = process.env.OPEN_API_KEY;
 
@@ -40,11 +40,11 @@ async function generateEmbeddings(text) {
 // Step 2: Store the embeddings (in memory for simplicity)
 let documentEmbeddings = []; // This could be stored in a database for larger documents
 
-export async function processFile(bufferData) {
+export async function processFile(bufferData , docType) {
 
 
     try {
-        const text = await extractText(bufferData);
+        const text = await extractText(bufferData, docType);
 
         console.log("extracted text : ", text);
 
@@ -110,22 +110,36 @@ function cosineSimilarity(vecA, vecB) {
 
 
 //this will be used for extracting text from the buffer data .
-async function extractText(bufferData) {
+async function extractText(bufferData,docType) {
     try {
 
         const text = [];
 
-        await new Promise((resolve, reject) => {
-            new PdfReader().parseBuffer(bufferData, function (err, item) {
-                if (err) {
-                    reject(err);
-                } else if (!item) {
-                    resolve(text.join(' '));
-                } else if (item.text) {
-                    text.push(item.text);
-                }
+        if (docType == "application/pdf") {
+            await new Promise((resolve, reject) => {
+                new PdfReader().parseBuffer(bufferData, function (err, item) {
+                    if (err) {
+                        reject(err);
+                    } else if (!item) {
+                        resolve(text.join(' '));
+                    } else if (item.text) {
+                        text.push(item.text);
+                    }
+                });
             });
-        });
+        } else if (docType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
+                 // Parse the xlsx buffer
+                 const workbook = xlsx.read(bufferData, { type: 'buffer' });
+                 workbook.SheetNames.forEach(sheetName => {
+                     const worksheet = workbook.Sheets[sheetName];
+                     const sheetData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
+     
+                     // Convert each row to a string and append it to the text array
+                     sheetData.forEach(row => {
+                         text.push(row.join(' '));
+                     });
+                 });
+       }
 
 
         console.log("extracted text : ", text.join(' '))
@@ -140,7 +154,7 @@ async function extractText(bufferData) {
 
 async function extractTextFromCsv(bufferData) {
     try {
-        const workbook = XLSX.read(bufferData, { type: 'buffer' });
+        const workbook = read(bufferData, { type: 'buffer' });
 
         // Extract the first sheet's name
         const sheetName = workbook.SheetNames[0];
