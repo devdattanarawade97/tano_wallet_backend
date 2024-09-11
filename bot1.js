@@ -286,7 +286,7 @@ bot.on('document', async (msg) => {
             console.log('Received message is not a document type.');
             return;
         }
-        //chat id 
+        //chat id - 5831161789
         let chatId = msg.chat.id;
         let msg_text = msg.text ? msg.text.trim() : '';
         //caption text for entering price of the query 
