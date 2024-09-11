@@ -525,17 +525,17 @@ bot.on('callback_query', async (callbackQuery) => {
 
 //on hey command - this command is basically for if someone wants to access his own or others resources . so basicaly he have to type the command like /hey @username query 
 
-bot.onText(/\/create/, async (msg) => {
+bot.onText(/\/generate/, async (msg) => {
 
     console.log("on create command ")
     let chatId = msg.chat.id;
     let telegramUsername = msg.from.username
-    let command = "create";
+    let command = "generate";
     try {
 
         let msg_text = msg.text ? msg.text.trim() : '';
         let encodedMsg = encodeURIComponent(msg_text);
-        let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&command=${create}`;
+        let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&command=${command}`;
         //  let url = `http://localhost:5173/?chat_id=${chatId}&msg_text=${encodedMsg}&command=${create}`;
         console.log("url : ", url);
         const options1 = {
