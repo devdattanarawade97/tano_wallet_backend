@@ -196,7 +196,7 @@ app.post('/generate-image', async (req, res) => {
             n: 1,
             size: "1024x1024",
           });
-          image_url = response.data[0].url;
+         const image_url = response.data[0].url;
         
  
       // Corrected: send the photo using 'photo' field, not 'text'
