@@ -185,6 +185,11 @@ app.post('/generate-image', async (req, res) => {
      console.log("server chat id : ", chatId);
      console.log("server msg text : ", msgText);
     try {
+
+        await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
+            chat_id: chatId,
+            text: `${"please wait . generating image..."}`
+        });
         const response = await openai.images.generate({
             model: "dall-e-3",
             prompt: msgText,
