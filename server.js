@@ -126,8 +126,8 @@ app.post('/parse-image', async (req, res) => {
         // Push something into the array
         array.push(response);
     } catch (error) {
-        console.error("Error sending notification to Telegram bot:", error);
-        res.status(500).send({ success: false, message: 'Failed to send notification' });
+        console.error("Error in parsing image:", error);
+        res.status(500).send({ success: false, message: 'Failed to parse image' });
     }
 });
 
@@ -170,12 +170,42 @@ app.post('/update-lastused', async (req, res) => {
         });
         res.status(200).send({ success: true, });
     } catch (error) {
-        console.error("Error sending confirming tx:", error);
+        console.error("Error in updating last used time :", error);
         res.status(500).send({ success: false, message: 'Failed to send notification' });
     }
 });
 
 
+//we are using this endpoint for generating image
+
+app.post('/generate-image', async (req, res) => {
+
+
+    const {  chatId , msgText } = req.body;
+     console.log("server chat id : ", chatId);
+     console.log("server msg text : ", msgText);
+    try {
+        const response = await openai.images.generate({
+            model: "dall-e-3",
+            prompt: msgText,
+            n: 1,
+            size: "1024x1024",
+          });
+          image_url = response.data[0].url;
+        
+ 
+      // Corrected: send the photo using 'photo' field, not 'text'
+      await axios.post(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, {
+        chat_id: chatId,
+        photo: image_url,  // Use 'photo' instead of 'text'
+        caption: "generated image"  // You can use 'caption' for any additional text
+    });
+        res.status(200).send({ success: true, });
+    } catch (error) {
+        console.error("Error sending image:", error);
+        res.status(500).send({ success: false, message: 'Failed to send image' });
+    }
+});
 
 
 

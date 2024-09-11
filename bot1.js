@@ -61,7 +61,7 @@ bot.on('message', async (msg) => {
 
     let response = null;
     //we are checking user hasnot entered any command with msg then only we are allowing to proceed with this if 
-    if (command && command !== '/start' && command !== '/hey' && command !== '/update' && command !== '/send' && command !== '/generate') {
+    if (command && command !== '/start' && command !== '/hey' && command !== '/update' && command !== '/send' && command !== '/create') {
         try {
             switch (command) {
                 case '/text':
@@ -118,7 +118,7 @@ bot.on('message', async (msg) => {
                                 }
                             };
                             // console.log("web app url: ", url);
-                            await bot.sendMessage(chatId, `${url}`);
+                            // await bot.sendMessage(chatId, `${url}`);
                             await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
                             break;
 
@@ -273,7 +273,7 @@ bot.on('photo', async (msg) => {
 // when user sends the document to bot with caption that includes price of the each query
 //note -   user have to sent price of the query in the caption while uploading each file 
 bot.on('document', async (msg) => {
-   
+
 
     let docType = msg.document.mime_type;
     console.log("document type : ", docType)
@@ -282,7 +282,7 @@ bot.on('document', async (msg) => {
         //     console.log('Received message is not a PDF.');
         //     return;
         // }
-         if (!msg.document) {
+        if (!msg.document) {
             console.log('Received message is not a document type.');
             return;
         }
@@ -372,7 +372,7 @@ bot.on('document', async (msg) => {
 
                 if (caption !== undefined) {
                     //processing file will extract the data and generates the embeddings 
-                    let docEmebeddings = await processFile(pdfBuffer , docType);
+                    let docEmebeddings = await processFile(pdfBuffer, docType);
                     //basically firstly we are checking whether user available or not. also if the embeddings not generated properly then we are sending msg like something went wrong
 
                     if (docEmebeddings.length > 0) {
@@ -523,3 +523,47 @@ bot.on('callback_query', async (callbackQuery) => {
 
 
 
+//on hey command - this command is basically for if someone wants to access his own or others resources . so basicaly he have to type the command like /hey @username query 
+
+bot.onText(/\/create/, async (msg) => {
+
+    console.log("on create command ")
+    let chatId = msg.chat.id;
+    let telegramUsername = msg.from.username
+    let command = "create";
+    try {
+
+        let msg_text = msg.text ? msg.text.trim() : '';
+        let encodedMsg = encodeURIComponent(msg_text);
+        let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&command=${create}`;
+        //  let url = `http://localhost:5173/?chat_id=${chatId}&msg_text=${encodedMsg}&command=${create}`;
+        console.log("url : ", url);
+        const options1 = {
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: 'Pay',
+                            web_app: { url: url },
+                            // url: url ,
+                        },
+
+                    ]
+                ]
+            }
+        };
+        // console.log("web app url: ", url);
+        // await bot.sendMessage(chatId, `${url}`);
+        await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
+
+
+
+
+
+    } catch (error) {
+
+        console.log("error ", error.message)
+        let errorMessage = "something went wrong while creating image";
+        await bot.sendMessage(chatId, errorMessage);
+    }
+});
