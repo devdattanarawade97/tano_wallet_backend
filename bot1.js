@@ -572,59 +572,59 @@ bot.onText(/\/generate/, async (msg) => {
 });
 
 
-bot.onText(/\/transcript/, async (msg) => {
-    console.log("on transcript command");
-    let chatId = msg.chat.id;
-    let telegramUsername = msg.from.username;
-    let msg_text = msg.text ? msg.text.trim() : '';
-    let queryPrice = msg_text.split(' ')[1];
-    let videoLink = msg_text.split(' ')[2];
+// bot.onText(/\/transcript/, async (msg) => {
+//     console.log("on transcript command");
+//     let chatId = msg.chat.id;
+//     let telegramUsername = msg.from.username;
+//     let msg_text = msg.text ? msg.text.trim() : '';
+//     let queryPrice = msg_text.split(' ')[1];
+//     let videoLink = msg_text.split(' ')[2];
 
 
-    try {
-        if (!videoLink.includes('https://youtu.be/')) {
-            await bot.sendMessage(chatId, `invalid youtube link`);
-            return;
-        }
-        //https://youtu.be/3_SO0BpPF4Y?si=dCS9c-2ZMUJk8C_s
-        const youtubeUrl = videoLink;
+//     try {
+//         if (!videoLink.includes('https://youtu.be/')) {
+//             await bot.sendMessage(chatId, `invalid youtube link`);
+//             return;
+//         }
+//         //https://youtu.be/3_SO0BpPF4Y?si=dCS9c-2ZMUJk8C_s
+//         const youtubeUrl = videoLink;
 
-        // Assuming YoutubeLoader creates a transcript loader from a video URL
-        const loader = YoutubeTranscript.fetchTranscript(youtubeUrl);
+//         // Assuming YoutubeLoader creates a transcript loader from a video URL
+//         const loader = YoutubeTranscript.fetchTranscript(youtubeUrl);
 
-        // Loading the transcript or content related to the video
-        const docs = await loader.load();
+//         // Loading the transcript or content related to the video
+//         const docs = await loader.load();
 
-        // Loop through the pages and extract text from each document
-        let fullTranscript = '';
-        docs.forEach((doc) => {
-            console.log("transcript : ", doc.pageContent)
-            fullTranscript += doc.pageContent.replace(/&amp;#39;/g, "'");; // Append each page's text to the full transcript
-        });
-        // console.log("transcript : ",fullTranscript)
+//         // Loop through the pages and extract text from each document
+//         let fullTranscript = '';
+//         docs.forEach((doc) => {
+//             console.log("transcript : ", doc.pageContent)
+//             fullTranscript += doc.pageContent.replace(/&amp;#39;/g, "'");; // Append each page's text to the full transcript
+//         });
+//         // console.log("transcript : ",fullTranscript)
 
-        // Sending the entire transcript to the bot in a message
-        await bot.sendMessage(chatId, `processing transcript....please wait!`);
-
-
-
-        let docEmebeddings = await processText(fullTranscript);
-        //basically firstly we are checking whether user available or not. also if the embeddings not generated properly then we are sending msg like something went wrong
-
-        if (docEmebeddings.length > 0) {
-            const createNewUser = await createPinataUser(telegramUsername, "abcd", docEmebeddings, queryPrice);
+//         // Sending the entire transcript to the bot in a message
+//         await bot.sendMessage(chatId, `processing transcript....please wait!`);
 
 
-            await bot.sendMessage(chatId, `A Video Transcript has been received successfully.`);
-        } else {
 
-            await bot.sendMessage(chatId, `something went wrong`);
-        }
+//         let docEmebeddings = await processText(fullTranscript);
+//         //basically firstly we are checking whether user available or not. also if the embeddings not generated properly then we are sending msg like something went wrong
+
+//         if (docEmebeddings.length > 0) {
+//             const createNewUser = await createPinataUser(telegramUsername, "abcd", docEmebeddings, queryPrice);
 
 
-    } catch (error) {
-        console.log("error", error.message);
-        let errorMessage = "Something went wrong while generating the transcript";
-        await bot.sendMessage(chatId, errorMessage);
-    }
-});
+//             await bot.sendMessage(chatId, `A Video Transcript has been received successfully.`);
+//         } else {
+
+//             await bot.sendMessage(chatId, `something went wrong`);
+//         }
+
+
+//     } catch (error) {
+//         console.log("error", error.message);
+//         let errorMessage = "Something went wrong while generating the transcript";
+//         await bot.sendMessage(chatId, errorMessage);
+//     }
+// });
