@@ -9,12 +9,15 @@ import fs from 'fs';
 import tmp from 'tmp';
 import { uploadToPinata, retrieveFromPinata, createPinataUser, getAllEmbeddings, updateFilesToPinata, updateUserDetailsToPinata, queryLastUsedBotTimeFromPinata, retriveTotalChargeFromPinata } from './pinataServices.js';
 import os from 'os';
-import { askQuestionAboutPDF, processFile } from './similarity.js'
+import { askQuestionAboutPDF, processFile, processText } from './similarity.js'
 import OpenAI from "openai";
 // Access your API key as an environment variable (see "Set up your API key" above)
 
 // const Symbiosis = require("@symbiosis/sdk").default;
 // import { Symbiosis } from "symbiosis-js-sdk";
+import { YoutubeLoader } from "@langchain/community/document_loaders/web/youtube";
+
+// Assuming you have the package installed
 dotenv.config();
 //bot token
 const TOKEN = process.env.TOKEN;
@@ -61,7 +64,7 @@ bot.on('message', async (msg) => {
 
     let response = null;
     //we are checking user hasnot entered any command with msg then only we are allowing to proceed with this if 
-    if (command && command !== '/start' && command !== '/hey' && command !== '/update' && command !== '/send' && command !== '/generate') {
+    if (command && command !== '/start' && command !== '/hey' && command !== '/update' && command !== '/send' && command !== '/generate'&& command !== '/transcript') {
         try {
             switch (command) {
                 case '/text':
@@ -399,33 +402,33 @@ bot.on('document', async (msg) => {
 
 
 
-bot.onText(/\/retrive/, async (msg) => {
-    console.log("on retrive command ")
-    try {
-        let chatId = msg.chat.id;
-        let msg_text = msg.text ? msg.text.trim() : '';
-        let ipfsHash = msg_text.split(' ')[1];
-        // console.log("ipfs hash: ", ipfsHash);
-        // const pinataResponse = await retrieveFromPinata(ipfsHash);
-        // console.log("retrived data : ", pinataResponse);
+// bot.onText(/\/retrive/, async (msg) => {
+//     console.log("on retrive command ")
+//     try {
+//         let chatId = msg.chat.id;
+//         let msg_text = msg.text ? msg.text.trim() : '';
+//         let ipfsHash = msg_text.split(' ')[1];
+// console.log("ipfs hash: ", ipfsHash);
+// const pinataResponse = await retrieveFromPinata(ipfsHash);
+// console.log("retrived data : ", pinataResponse);
 
-        // const bufferData=await Buffer.from(await pinataResponse.arrayBuffer())
-        //    const tempFilePath = path.join(os.tmpdir(), 'temporary_pdf.pdf');
+// const bufferData=await Buffer.from(await pinataResponse.arrayBuffer())
+//    const tempFilePath = path.join(os.tmpdir(), 'temporary_pdf.pdf');
 
 
-        // fs.writeFileSync(tempFilePath, bufferData);
+// fs.writeFileSync(tempFilePath, bufferData);
 
-        // const text = fs.readFileSync(tempFilePath, 'utf8');
-        await bot.sendMessage(chatId, "processing....");
-        await processFile(ipfsHash)
+// const text = fs.readFileSync(tempFilePath, 'utf8');
+//         await bot.sendMessage(chatId, "processing....");
+//         await processFile(ipfsHash)
 
-        await bot.sendMessage(chatId, "file processed successfully . you can ask questions");
-    } catch (error) {
+//         await bot.sendMessage(chatId, "file processed successfully . you can ask questions");
+//     } catch (error) {
 
-        console.log("error ", error.message)
-    }
+//         console.log("error ", error.message)
+//     }
 
-});
+// });
 
 
 //on hey command - this command is basically for if someone wants to access his own or others resources . so basicaly he have to type the command like /hey @username query 
@@ -564,6 +567,67 @@ bot.onText(/\/generate/, async (msg) => {
 
         console.log("error ", error.message)
         let errorMessage = "something went wrong while creating image";
+        await bot.sendMessage(chatId, errorMessage);
+    }
+});
+
+
+bot.onText(/\/transcript/, async (msg) => {
+    console.log("on transcript command");
+    let chatId = msg.chat.id;
+    let telegramUsername = msg.from.username;
+    let msg_text = msg.text ? msg.text.trim() : '';
+    let queryPrice = msg_text.split(' ')[1];
+    let videoLink = msg_text.split(' ')[2];
+
+
+    try {
+        if (!videoLink.includes('https://youtu.be/')) {
+            await bot.sendMessage(chatId, `invalid youtube link`);
+            return;
+        }
+        //https://youtu.be/3_SO0BpPF4Y?si=dCS9c-2ZMUJk8C_s
+        const youtubeUrl = videoLink;
+
+        // Assuming YoutubeLoader creates a transcript loader from a video URL
+        const loader = YoutubeLoader.createFromUrl(youtubeUrl, {
+            language: "en",
+            addVideoInfo: true,
+        });
+
+        // Loading the transcript or content related to the video
+        const docs = await loader.load();
+
+        // Loop through the pages and extract text from each document
+        let fullTranscript = '';
+        docs.forEach((doc) => {
+            console.log("transcript : ", doc.pageContent)
+            fullTranscript += doc.pageContent.replace(/&amp;#39;/g, "'");; // Append each page's text to the full transcript
+        });
+        // console.log("transcript : ",fullTranscript)
+
+        // Sending the entire transcript to the bot in a message
+        await bot.sendMessage(chatId, `processing transcript....please wait!`);
+
+
+
+        let docEmebeddings = await processText(fullTranscript);
+        //basically firstly we are checking whether user available or not. also if the embeddings not generated properly then we are sending msg like something went wrong
+
+        if (docEmebeddings.length > 0) {
+            const createNewUser = await createPinataUser(telegramUsername, "abcd", docEmebeddings, queryPrice);
+
+
+            await bot.sendMessage(chatId, `A Video Transcript has been received successfully.`);
+        } else {
+
+            await bot.sendMessage(chatId, `something went wrong`);
+        }
+
+
+    } catch (error) {
+        console.log("error", error.message);
+        let errorMessage = "Something went wrong while generating the transcript";
         await bot.sendMessage(chatId, errorMessage);
     }
 });

@@ -31,6 +31,7 @@
   "devDependencies": {
     "@google/generative-ai": "^0.17.0",
     "@huggingface/inference": "^2.8.0",
+    "@langchain/community": "^0.3.0",
     "@libp2p/pubsub": "^9.0.26",
     "@ton/core": "^0.57.0",
     "axios": "^1.7.5",
@@ -53,6 +54,8 @@
     "tmp": "^0.2.3",
     "ton-client-node-js": "^0.28.0",
     "tonweb": "^0.0.66",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "youtube-transcript": "^1.2.1",
+    "youtubei.js": "^9.4.0"
   }
 }

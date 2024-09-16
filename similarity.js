@@ -58,6 +58,23 @@ export async function processFile(bufferData , docType) {
     return documentEmbeddings;
 }
 
+//optional Step 2: Store the embeddings (in memory for simplicity)
+export async function processText(textData) {
+
+
+    try {
+    
+
+        documentEmbeddings = await generateEmbeddings(textData);
+        console.log("Embeddings generated and stored.");
+
+    } catch (error) {
+        console.log("error while processing file : ", error.message);
+
+    }
+    return documentEmbeddings;
+}
+
 // Step 3: Find relevant chunks based on a question
 async function findRelevantChunks(documentEmbeddings1, question) {
     const response = await openai.embeddings.create({

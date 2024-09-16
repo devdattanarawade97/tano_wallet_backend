@@ -1,7 +1,7 @@
 import { PinataSDK } from "pinata";
 import dotenv from 'dotenv';
 import { json } from "stream/consumers";
-import { processFile } from './similarity.js'
+import { processFile, processText } from './similarity.js'
 dotenv.config();
 
 
@@ -169,8 +169,7 @@ export const updateFilesToPinata = async function (telegramUsername, fileName, p
     console.log('user with name : ', user);
     if (user.length > 0) {
       console.log('user found');
-      let newEmbeddings = await processFile(pdfBuffer);
-
+      let newEmbeddings= await processFile(pdfBuffer);
       const userJson = await retrieveFromPinata(user[0].ipfs_pin_hash);
       userJson.embeddings.forEach(element => {
         console.log("actual file name : ", element.fileName);
