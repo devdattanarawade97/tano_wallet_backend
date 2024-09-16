@@ -64,7 +64,7 @@ bot.on('message', async (msg) => {
 
     let response = null;
     //we are checking user hasnot entered any command with msg then only we are allowing to proceed with this if 
-    if (command && command !== '/start' && command !== '/hey' && command !== '/update' && command !== '/send' && command !== '/generate'&& command !== '/transcript') {
+    if (command && command !== '/start' && command !== '/hey' && command !== '/update' && command !== '/send' && command !== '/generate') {
         try {
             switch (command) {
                 case '/text':
