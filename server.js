@@ -121,10 +121,7 @@ app.post('/parse-image', async (req, res) => {
         });
 
         res.status(200).send({ success: true, message: 'Notification sent' });
-        let array = previousOutputs[userId] || [];
-
-        // Push something into the array
-        array.push(response);
+    
     } catch (error) {
         console.error("Error in parsing image:", error);
         res.status(500).send({ success: false, message: 'Failed to parse image' });
