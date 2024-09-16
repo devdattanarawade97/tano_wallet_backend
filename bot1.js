@@ -15,7 +15,7 @@ import OpenAI from "openai";
 
 // const Symbiosis = require("@symbiosis/sdk").default;
 // import { Symbiosis } from "symbiosis-js-sdk";
-import { YoutubeLoader } from "@langchain/community/document_loaders/web/youtube";
+import { YoutubeTranscript } from 'youtube-transcript';
 
 // Assuming you have the package installed
 dotenv.config();
@@ -590,10 +590,7 @@ bot.onText(/\/transcript/, async (msg) => {
         const youtubeUrl = videoLink;
 
         // Assuming YoutubeLoader creates a transcript loader from a video URL
-        const loader = YoutubeLoader.createFromUrl(youtubeUrl, {
-            language: "en",
-            addVideoInfo: true,
-        });
+        const loader = YoutubeTranscript.fetchTranscript(youtubeUrl);
 
         // Loading the transcript or content related to the video
         const docs = await loader.load();
