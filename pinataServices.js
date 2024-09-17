@@ -1,7 +1,7 @@
 import { PinataSDK } from "pinata";
 import dotenv from 'dotenv';
 import { json } from "stream/consumers";
-import { processFile, processText } from './similarity.js'
+import { processFile } from './similarity.js'
 dotenv.config();
 
 
