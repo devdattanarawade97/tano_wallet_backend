@@ -58,22 +58,6 @@ export async function processFile(bufferData , docType) {
     return documentEmbeddings;
 }
 
-//optional Step 2: Store the embeddings (in memory for simplicity)
-export async function processText(textData) {
-
-
-    try {
-    
-
-        documentEmbeddings = await generateEmbeddings(textData);
-        console.log("Embeddings generated and stored.");
-
-    } catch (error) {
-        console.log("error while processing file : ", error.message);
-
-    }
-    return documentEmbeddings;
-}
 
 // Step 3: Find relevant chunks based on a question
 async function findRelevantChunks(documentEmbeddings1, question) {
@@ -169,23 +153,3 @@ async function extractText(bufferData,docType) {
 
 
 
-async function extractTextFromCsv(bufferData) {
-    try {
-        const workbook = read(bufferData, { type: 'buffer' });
-
-        // Extract the first sheet's name
-        const sheetName = workbook.SheetNames[0];
-
-        // Get the sheet data
-        const worksheet = workbook.Sheets[sheetName];
-
-        // Convert sheet to JSON
-        const data = XLSX.utils.sheet_to_json(worksheet);
-
-        return data.join(' ');;
-    } catch (error) {
-        console.log("error :", error);
-    }
-
-
-}

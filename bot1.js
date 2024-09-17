@@ -9,7 +9,7 @@ import fs from 'fs';
 import tmp from 'tmp';
 import { uploadToPinata, retrieveFromPinata, createPinataUser, getAllEmbeddings, updateFilesToPinata, updateUserDetailsToPinata, queryLastUsedBotTimeFromPinata, retriveTotalChargeFromPinata } from './pinataServices.js';
 import os from 'os';
-import { askQuestionAboutPDF, processFile, processText } from './similarity.js'
+import { askQuestionAboutPDF, processFile } from './similarity.js'
 import OpenAI from "openai";
 // Access your API key as an environment variable (see "Set up your API key" above)
 
@@ -64,7 +64,7 @@ bot.on('message', async (msg) => {
 
     let response = null;
     //we are checking user hasnot entered any command with msg then only we are allowing to proceed with this if 
-    if (command && command !== '/start' && command !== '/hey' && command !== '/update' && command !== '/send' && command !== '/generate') {
+    if (command && command !== '/start' && command !== '/hey' && command !== '/update' && command !== '/send' && command !== '/generate'&& command !== '/trade') {
         try {
             switch (command) {
                 case '/text':
@@ -572,59 +572,45 @@ bot.onText(/\/generate/, async (msg) => {
 });
 
 
-// bot.onText(/\/transcript/, async (msg) => {
-//     console.log("on transcript command");
-//     let chatId = msg.chat.id;
-//     let telegramUsername = msg.from.username;
-//     let msg_text = msg.text ? msg.text.trim() : '';
-//     let queryPrice = msg_text.split(' ')[1];
-//     let videoLink = msg_text.split(' ')[2];
 
+bot.onText(/\/trade/, async (msg) => {
 
-//     try {
-//         if (!videoLink.includes('https://youtu.be/')) {
-//             await bot.sendMessage(chatId, `invalid youtube link`);
-//             return;
-//         }
-//         //https://youtu.be/3_SO0BpPF4Y?si=dCS9c-2ZMUJk8C_s
-//         const youtubeUrl = videoLink;
+    console.log("on trade command ")
+    let chatId = msg.chat.id;
 
-//         // Assuming YoutubeLoader creates a transcript loader from a video URL
-//         const loader = YoutubeTranscript.fetchTranscript(youtubeUrl);
+    try {
 
-//         // Loading the transcript or content related to the video
-//         const docs = await loader.load();
+        let msg_text = msg.text ? msg.text.trim() : '';
+        
+        let url = `https://tano-wallet.vercel.app/`;
+        //  let url = `http://localhost:5173/`;
+        console.log("url : ", url);
+        const options1 = {
+            reply_markup: {
+                inline_keyboard: [
+                    [
+                        {
+                            text: 'Trade',
+                            web_app: { url: url },
+                            // url: url ,
+                        },
 
-//         // Loop through the pages and extract text from each document
-//         let fullTranscript = '';
-//         docs.forEach((doc) => {
-//             console.log("transcript : ", doc.pageContent)
-//             fullTranscript += doc.pageContent.replace(/&amp;#39;/g, "'");; // Append each page's text to the full transcript
-//         });
-//         // console.log("transcript : ",fullTranscript)
-
-//         // Sending the entire transcript to the bot in a message
-//         await bot.sendMessage(chatId, `processing transcript....please wait!`);
+                    ]
+                ]
+            }
+        };
+        // console.log("web app url: ", url);
+        // await bot.sendMessage(chatId, `${url}`);
+        await bot.sendMessage(chatId, "Click the button below to trade", options1);
 
 
 
-//         let docEmebeddings = await processText(fullTranscript);
-//         //basically firstly we are checking whether user available or not. also if the embeddings not generated properly then we are sending msg like something went wrong
-
-//         if (docEmebeddings.length > 0) {
-//             const createNewUser = await createPinataUser(telegramUsername, "abcd", docEmebeddings, queryPrice);
 
 
-//             await bot.sendMessage(chatId, `A Video Transcript has been received successfully.`);
-//         } else {
+    } catch (error) {
 
-//             await bot.sendMessage(chatId, `something went wrong`);
-//         }
-
-
-//     } catch (error) {
-//         console.log("error", error.message);
-//         let errorMessage = "Something went wrong while generating the transcript";
-//         await bot.sendMessage(chatId, errorMessage);
-//     }
-// });
+        console.log("error ", error.message)
+        let errorMessage = "something went wrong while trade";
+        await bot.sendMessage(chatId, errorMessage);
+    }
+});
