@@ -46,6 +46,8 @@ let userEmbeddings = {};
 bot.on('message', async (msg) => {
     console.log("on msg command ")
     let chatId = msg.chat.id;
+    let telegramUsername = msg.from.username;
+    let currentTime = new Date();
     let currentMode = userModes[chatId] || 'gpt';  // Default to GPT if not set
     let msg_text = msg.text ? msg.text.trim() : '';
     let commandParts = msg_text.split(' ');
@@ -100,52 +102,66 @@ bot.on('message', async (msg) => {
 
                 default:
                     let encodedMsg = encodeURIComponent(msg_text);
-                    let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
-                    //  let url = `http://localhost:5173/?chat_id=${chatId}&msg_text=${encodedMsg}&model=${modelName}`;
-                    console.log("url : ", url);
-
-                    switch (currentMode.toLowerCase()) {
-                        case 'gemini':
-                            const options1 = {
-                                reply_markup: {
-                                    inline_keyboard: [
-                                        [
-                                            {
-                                                text: 'Pay',
-                                                web_app: { url: url },
-                                                // url: url ,
-                                            },
-
-                                        ]
-                                    ]
-                                }
-                            };
-                            // console.log("web app url: ", url);
-                            // await bot.sendMessage(chatId, `${url}`);
-                            await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
-                            break;
-
-                        case 'gpt':
-                            const options = {
-                                reply_markup: {
-                                    inline_keyboard: [
-                                        [
-                                            {
-                                                text: 'Pay',
-                                                web_app: { url: url },
-                                            },
-
-                                        ]
-                                    ]
-                                }
-                            };
-                            await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options);
-                            break;
-
-                        default:
-                            console.warn(`Unknown mode: ${currentMode}`);
-                            response = "Select an LLM model";
+                  
+                    let actualLastUsedTime = await queryLastUsedBotTimeFromPinata(telegramUsername);
+                    // console.log("actual last used time :", actualLastUsedTime);
+                    let diffInMinutes;
+                    //initially user time will be set to null 
+                    if (actualLastUsedTime !== null) {
+                        const timeDiff = currentTime.getTime() - new Date(actualLastUsedTime).getTime();
+        
+        
+                        diffInMinutes = timeDiff / (1000 * 60);
                     }
+                    console.log("diff in min : ", diffInMinutes)
+                    //if the inactivity time is less than 1 then user will ask question
+                    if (diffInMinutes =undefined|| diffInMinutes <= 1 || actualLastUsedTime == null) {
+        
+                        const fetchModelResponse = await fetch(
+                              `${PUBLIC_BACKEND_BASE_URI}/notify-transaction`,
+                            //   `http://localhost:3000/notify-transaction`,
+                            {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                    transactionId: "transactionHash",
+                                    userId: chatId,
+                                    status: "status",
+                                    msgText: msg_text,
+                                    model: modelName,
+                                }),
+                            },
+                        );
+                        const response = await fetchModelResponse.json();
+                        await updateUserDetailsToPinata(telegramUsername, currentTime, "");
+        
+                        // await bot.sendMessage(chatId, response);
+                    } else {
+                        //else user have to pay for the last used session
+                        let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
+                        let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}&chat_id=${chatId}`;
+                        //   let url = `http://localhost:5173/?username=${telegramUsername}&charge=${totalCharge}`;
+                        // console.log("pay url : ", url)
+                        const options1 = {
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [
+                                        {
+                                            text: 'Pay',
+                                            web_app: { url: url },
+                                        },
+        
+                                    ]
+                                ]
+                            }
+                        };
+                        // console.log("web app url: ", url);
+                        await bot.sendMessage(chatId, "Click the button below to pay for the last used session", options1);
+                    }
+
+
             }
 
 
@@ -180,6 +196,9 @@ bot.onText(/\/start/, async (msg) => {
     try {
 
         let chatId = msg.chat.id;
+        let telegramUsername = msg.from.username;
+          //create new user before querying the last used session
+          const createNewUser = await createPinataUser(telegramUsername, "", "", "");
         let url = "https://tano-wallet.vercel.app";
         let options = {
             reply_markup: {
@@ -211,6 +230,8 @@ bot.on('photo', async (msg) => {
     console.log("on photo command ")
     try {
         let chatId = msg.chat.id;
+        let telegramUsername = msg.from.username;
+        let currentTime = new Date();
         //get the file id for uploaded pdf
         const photoId = msg.photo[msg.photo.length - 1].file_id;
         //getting file link for uploaded pdf 
@@ -241,26 +262,64 @@ bot.on('photo', async (msg) => {
             );
             let imageUri = uploadResult.file.uri;
             let imageMimeType = uploadResult.file.mimeType;
-            let encodedImageUri = encodeURIComponent(imageUri);
-            let encodedImageMime = encodeURIComponent(imageMimeType);
-            //creating url for user uploaded image with chatid .once the user does the payment the backend url will get hit for image computation
-            let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&imageUri=${imageUri}&imageMimeType=${imageMimeType}`;
-            // let url = `http://localhost:5173/?chat_id=${chatId}&imageUri=${encodedImageUri}&imageMimeType=${encodedImageMime}`;
-            const options1 = {
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: 'Pay',
-                                web_app: { url: url },
-                            },
+           
+           
+            let actualLastUsedTime = await queryLastUsedBotTimeFromPinata(telegramUsername);
+            // console.log("actual last used time :", actualLastUsedTime);
+            let diffInMinutes;
+            //initially user time will be set to null 
+            if (actualLastUsedTime !== null) {
+                const timeDiff = currentTime.getTime() - new Date(actualLastUsedTime).getTime();
 
+
+                diffInMinutes = timeDiff / (1000 * 60);
+            }
+            console.log("diff in min : ", diffInMinutes)
+            //if the inactivity time is less than 1 then user will ask question
+            if (diffInMinutes =undefined|| diffInMinutes <= 1 || actualLastUsedTime == null) {
+
+                const fetchModelResponse = await fetch(
+                      `${PUBLIC_BACKEND_BASE_URI}/parse-image`,
+                    //  `http://localhost:3000/parse-image`,
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            userId: chatId,
+                            imageUri,
+                            imageMimeType,
+                        }),
+                    },
+                );
+                const response = await fetchModelResponse.json();
+                await updateUserDetailsToPinata(telegramUsername, currentTime, "");
+
+                // await bot.sendMessage(chatId, response);
+            } else {
+                //else user have to pay for the last used session
+                let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
+                let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}&chat_id=${chatId}`;
+                //   let url = `http://localhost:5173/?username=${telegramUsername}&charge=${totalCharge}`;
+                // console.log("pay url : ", url)
+                const options1 = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                {
+                                    text: 'Pay',
+                                    web_app: { url: url },
+                                },
+
+                            ]
                         ]
-                    ]
-                }
-            };
-            // console.log("web app url: ", url);
-            await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
+                    }
+                };
+                // console.log("web app url: ", url);
+                await bot.sendMessage(chatId, "Click the button below to pay for the last used session", options1);
+            }
+           
 
             // Clean up the temporary file
             //cleaning up the temo generated file using below function
@@ -532,34 +591,69 @@ bot.onText(/\/generate/, async (msg) => {
 
     console.log("on create command ")
     let chatId = msg.chat.id;
-    let telegramUsername = msg.from.username
+    let telegramUsername = msg.from.username;
+    let currentTime = new Date();
     let command = "generate";
     try {
 
         let msg_text = msg.text ? msg.text.trim() : '';
         let encodedMsg = encodeURIComponent(msg_text);
-        let url = `https://tano-wallet.vercel.app/?chat_id=${chatId}&msg_text=${encodedMsg}&command=${command}`;
-        //  let url = `http://localhost:5173/?chat_id=${chatId}&msg_text=${encodedMsg}&command=${create}`;
-        console.log("url : ", url);
-        const options1 = {
-            reply_markup: {
-                inline_keyboard: [
-                    [
-                        {
-                            text: 'Pay',
-                            web_app: { url: url },
-                            // url: url ,
-                        },
+          
+        let actualLastUsedTime = await queryLastUsedBotTimeFromPinata(telegramUsername);
+        // console.log("actual last used time :", actualLastUsedTime);
+        let diffInMinutes;
+        //initially user time will be set to null 
+        if (actualLastUsedTime !== null) {
+            const timeDiff = currentTime.getTime() - new Date(actualLastUsedTime).getTime();
 
+
+            diffInMinutes = timeDiff / (1000 * 60);
+        }
+        console.log("diff in min : ", diffInMinutes)
+        //if the inactivity time is less than 1 then user will ask question
+        if (diffInMinutes =undefined|| diffInMinutes <= 1 || actualLastUsedTime == null) {
+
+            const imageResponse = await fetch(
+                  `${PUBLIC_BACKEND_BASE_URI}/generate-image`,
+                //  `http://localhost:3000/generate-image`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        
+                        chatId: chatId,
+                        msgText: msg_text,
+                    }),
+                },
+            );
+            const response = await imageResponse.json(); 
+            await updateUserDetailsToPinata(telegramUsername, currentTime, "");
+
+            // await bot.sendMessage(chatId, response);
+        } else {
+            //else user have to pay for the last used session
+            let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
+            let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}&chat_id=${chatId}`;
+            //   let url = `http://localhost:5173/?username=${telegramUsername}&charge=${totalCharge}`;
+            // console.log("pay url : ", url)
+            const options1 = {
+                reply_markup: {
+                    inline_keyboard: [
+                        [
+                            {
+                                text: 'Pay',
+                                web_app: { url: url },
+                            },
+
+                        ]
                     ]
-                ]
-            }
-        };
-        // console.log("web app url: ", url);
-        // await bot.sendMessage(chatId, `${url}`);
-        await bot.sendMessage(chatId, "Click the button below to pay the nominal gas fee", options1);
-
-
+                }
+            };
+            // console.log("web app url: ", url);
+            await bot.sendMessage(chatId, "Click the button below to pay for the last used session", options1);
+        }
 
 
 

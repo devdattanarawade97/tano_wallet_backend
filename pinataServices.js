@@ -51,7 +51,8 @@ export const createPinataUser = async function (telegramUsername, fileName, file
     const user = await pinata.listFiles().name(telegramUsername)
 
     console.log('user with name : ', user);
-
+    
+  
     const userObject = {
       userName: telegramUsername,
       embeddings: [
@@ -61,19 +62,22 @@ export const createPinataUser = async function (telegramUsername, fileName, file
         //   embedding:[],
         // }
       ],
-      queryPrice: queryPrice,
+      queryPrice: queryPrice ==''? 0 : queryPrice,
       totalCharge: null,
       lastUsed: null,
     }
 
     if (user.length == 0) {
-      let uniqueFileName = `${fileName}_${0}`;
+      //if filename is not equal to !=="" . other file names will be "". and in case of docs will be file name
+      if (fileName !== '') {
+        let uniqueFileName = `${fileName}_${0}`;
       const newEmbeddingObject = {
         id: 0,
         fileName: uniqueFileName,
         embedding: fileEmbeddings,
       }
       userObject.embeddings.push(newEmbeddingObject);
+      }
       console.log("new user before uploading pinata : ", userObject)
       console.log("file name before uploading to pinata : ", `${telegramUsername}.json`)
       //uploading data to pinata 
@@ -82,7 +86,8 @@ export const createPinataUser = async function (telegramUsername, fileName, file
     } else {
 
       //retriving user details from pinata using hash 
-      const userJson = await retrieveFromPinata(user[0].ipfs_pin_hash);
+      if (fileName !== '') {
+        const userJson = await retrieveFromPinata(user[0].ipfs_pin_hash);
       console.log("retrived user json : ", userJson)
       let lengthOfFiles = userJson.embeddings.length;
       let uniqueFileName = `${fileName}_${lengthOfFiles + 1}`;
@@ -97,6 +102,7 @@ export const createPinataUser = async function (telegramUsername, fileName, file
       console.log("upaded user before uploading pinata : ", userJson)
       await uploadToPinata(userJson, telegramUsername);
       await unpinPinataData(user[0].ipfs_pin_hash);
+     }
 
     }
 
@@ -206,7 +212,7 @@ export const updateFilesToPinata = async function (telegramUsername, fileName, p
 //this function basically used whenever user queries the total charge and the last used time will be recalculated and updated accordingly for each query to maintain the used session
 
 export const updateUserDetailsToPinata = async function (telegramUsername, lastUsedTime, dataProvider) {
-  let retrivedQueryPrice;
+  let retrivedQueryPrice=0;
   try {
     const user = await pinata.listFiles().name(telegramUsername)
 
@@ -214,11 +220,15 @@ export const updateUserDetailsToPinata = async function (telegramUsername, lastU
     const userJson = await retrieveFromPinata(user[0].ipfs_pin_hash);
     userJson.lastUsed = lastUsedTime;
 
-
+    //data prvoider is basically user who uploaded pdf
+    let updatedTotalUsedCharge;
     if (dataProvider !== "") {
       retrivedQueryPrice = await retriveQueryPriceFromPinata(dataProvider);
+      updatedTotalUsedCharge = userJson.totalCharge == null ? 0 + Number(retrivedQueryPrice) : Number(userJson.totalCharge) + Number(retrivedQueryPrice);
+    } else {
+      updatedTotalUsedCharge = userJson.totalCharge == null ? 0 + Number(retrivedQueryPrice)+0.0001 : Number(userJson.totalCharge) + Number(retrivedQueryPrice)+0.0001;
     }
-    let updatedTotalUsedCharge = userJson.totalCharge == null ? 0 + Number(retrivedQueryPrice) : Number(userJson.totalCharge) + Number(retrivedQueryPrice);
+    
     console.log("updated total charge : ", updatedTotalUsedCharge);
     userJson.totalCharge = updatedTotalUsedCharge;
     await uploadToPinata(userJson, telegramUsername);
