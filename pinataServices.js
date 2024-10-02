@@ -156,6 +156,7 @@ export const getAllEmbeddings = async function (telegramUsername) {
       allEmbeddings.push(element.embedding[0])
     });
     console.log("retrived user json : ", userJson)
+    
 
   } catch (error) {
     console.log("error while getting all embeddings : ", error.mgessage);

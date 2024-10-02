@@ -1,4 +1,7 @@
 
+
+// imports for bot
+
 import dotenv from 'dotenv';
 import telegramBot from 'node-telegram-bot-api';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -9,13 +12,12 @@ import fs from 'fs';
 import tmp from 'tmp';
 import { uploadToPinata, retrieveFromPinata, createPinataUser, getAllEmbeddings, updateFilesToPinata, updateUserDetailsToPinata, queryLastUsedBotTimeFromPinata, retriveTotalChargeFromPinata } from './pinataServices.js';
 import os from 'os';
-import { askQuestionAboutPDF, processFile } from './similarity.js'
+import { askQuestionAboutPDF, processFile, getCohereRAG } from './similarity.js'
 import OpenAI from "openai";
 // Access your API key as an environment variable (see "Set up your API key" above)
 
 // const Symbiosis = require("@symbiosis/sdk").default;
 // import { Symbiosis } from "symbiosis-js-sdk";
-import { YoutubeTranscript } from 'youtube-transcript';
 
 // Assuming you have the package installed
 dotenv.config();
@@ -35,27 +37,34 @@ const fileManager = new GoogleAIFileManager(process.env.GEMINI_API_KEY);
 // console.log("gemini token : ", process.env.GEMINI_API_KEY)
 
 
-//user specific AI model storing
-//user specific embeddings storing
+//user specific AI model storage
+//user specific embeddings storage
 let userModes = {};
 let userEmbeddings = {};
 // Storage for previous output (e.g., image URLs or file IDs) per user
 
 
-//1 bot on msg 
+// #1 bot on msg
+// this function will be called when user sends any message to bot 
 bot.on('message', async (msg) => {
-    console.log("on msg command ")
-    let chatId = msg.chat.id;
-    let telegramUsername = msg.from.username;
-    let currentTime = new Date();
-    let currentMode = userModes[chatId] || 'gpt';  // Default to GPT if not set
-    let msg_text = msg.text ? msg.text.trim() : '';
-    let commandParts = msg_text.split(' ');
-    let command = commandParts[0];
-    console.log("msg text : ", msg_text)
-    let modelName = encodeURIComponent(currentMode);
 
-    //restricting user for entering text more than 100 chars as AI model prompt have token limits 
+    console.log("on msg command ");
+
+    let chatId = msg.chat.id; //chat id
+    let telegramUsername = msg.from.username; //telegram username
+    let currentTime = new Date(); // current date and time
+    let currentMode = userModes[chatId] || 'cohere';  // Default to GPT if not set
+    let msg_text = msg.text ? msg.text.trim() : ''; // user entered msg
+    let commandParts = msg_text.split(' '); // split the command and arguments
+    let command = commandParts[0]; // get the command
+    console.log("msg text : ", msg_text)
+    let modelName = encodeURIComponent(currentMode); //encode model name
+
+    /* 
+     - we are restricting user for entering text more than 100 chars as AI model have 4096 token limits on prompt 
+       and if user enters more than 100 chars then bot will return error . below conditions are added for text mode
+    */
+
     if (msg_text.length > 100 && command === '/text') {
         await bot.sendMessage(chatId, "Please enter a query with less than 100 characters.");
         return;
@@ -65,8 +74,18 @@ bot.on('message', async (msg) => {
     // console.log("current mode: ", currentMode);
 
     let response = null;
-    //we are checking user hasnot entered any command with msg then only we are allowing to proceed with this if 
-    if (command && command !== '/start' && command !== '/hey' && command !== '/update' && command !== '/send' && command !== '/generate'&& command !== '/trade') {
+    /*
+    -  we are checking user hasnot entered any command with msg then only we are allowing to proceed with this if condition. 
+    -  below list of commands are /start, /hey, /update, /send, /generate, /trade
+    -  if user has entered any command with msg then bot will return error.
+    -  if user selects /text mode then bot will ask user to select mode. that is gemini or gpt
+    -  if user selects /image mode then bot will ask user to send image
+    -  if user selects /docs mode then bot will ask user to send document
+    -  default mode is gpt
+    -  if user sends msg without any command then simple cohere chat query will be handled
+
+    */
+    if (command && command !== '/start' && command !== '/hey' && command !== '/update' && command !== '/send' && command !== '/generate' && command !== '/trade') {
         try {
             switch (command) {
                 case '/text':
@@ -81,7 +100,7 @@ bot.on('message', async (msg) => {
                                     },
                                     {
                                         text: 'GPT Mode',
-                                        callback_data: 'mode_gpt',
+                                        callback_data: 'mode_cohere',
                                     },
                                 ],
                             ],
@@ -102,24 +121,24 @@ bot.on('message', async (msg) => {
 
                 default:
                     let encodedMsg = encodeURIComponent(msg_text);
-                  
-                    let actualLastUsedTime = await queryLastUsedBotTimeFromPinata(telegramUsername);
+
+                    let actualLastUsedTime = await queryLastUsedBotTimeFromPinata(telegramUsername);// this is will retrive last used time from pinata
                     // console.log("actual last used time :", actualLastUsedTime);
                     let diffInMinutes;
                     //initially user time will be set to null 
                     if (actualLastUsedTime !== null) {
                         const timeDiff = currentTime.getTime() - new Date(actualLastUsedTime).getTime();
-        
-        
+
+
                         diffInMinutes = timeDiff / (1000 * 60);
                     }
                     console.log("diff in min : ", diffInMinutes)
-                    //if the inactivity time is less than 1 then user will ask question
-                    if (diffInMinutes =undefined|| diffInMinutes <= 1 || actualLastUsedTime == null) {
-        
+                    //if the inactivity time is less than 1 then user query will be processed by bot in below logic
+                    if (diffInMinutes = undefined || diffInMinutes <= 1 || actualLastUsedTime == null) {
+
                         const fetchModelResponse = await fetch(
-                              `${PUBLIC_BACKEND_BASE_URI}/notify-transaction`,
-                            //   `http://localhost:3000/notify-transaction`,
+                             `${PUBLIC_BACKEND_BASE_URI}/notify-transaction`,
+                            //    `http://localhost:3000/notify-transaction`,
                             {
                                 method: "POST",
                                 headers: {
@@ -136,14 +155,14 @@ bot.on('message', async (msg) => {
                         );
                         const response = await fetchModelResponse.json();
                         await updateUserDetailsToPinata(telegramUsername, currentTime, "");
-        
+
                         // await bot.sendMessage(chatId, response);
                     } else {
                         //else user have to pay for the last used session
                         let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
                         let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}&chat_id=${chatId}`;
                         //   let url = `http://localhost:5173/?username=${telegramUsername}&charge=${totalCharge}`;
-                        // console.log("pay url : ", url)
+                        console.log("pay url : ", url)
                         const options1 = {
                             reply_markup: {
                                 inline_keyboard: [
@@ -152,7 +171,7 @@ bot.on('message', async (msg) => {
                                             text: 'Pay',
                                             web_app: { url: url },
                                         },
-        
+
                                     ]
                                 ]
                             }
@@ -176,16 +195,16 @@ bot.on('message', async (msg) => {
     }
 
 
-    if (response !== null) {
-        try {
-            await bot.sendMessage(chatId, response);
-        } catch (error) {
-            console.error("Error:", error.message);
-            if (error.response && error.response.statusCode === 403) {
-                console.log(`Bot was blocked by the user with chatId ${chatId}`);
-            }
-        }
-    }
+    // if (response !== null) {
+    //     try {
+    //         await bot.sendMessage(chatId, response);
+    //     } catch (error) {
+    //         console.error("Error:", error.message);
+    //         if (error.response && error.response.statusCode === 403) {
+    //             console.log(`Bot was blocked by the user with chatId ${chatId}`);
+    //         }
+    //     }
+    // }
 });
 
 
@@ -197,8 +216,8 @@ bot.onText(/\/start/, async (msg) => {
 
         let chatId = msg.chat.id;
         let telegramUsername = msg.from.username;
-          //create new user before querying the last used session
-          const createNewUser = await createPinataUser(telegramUsername, "", "", "");
+        //create new user before querying the last used session
+        const createNewUser = await createPinataUser(telegramUsername, "", "", "");
         let url = "https://tano-wallet.vercel.app";
         let options = {
             reply_markup: {
@@ -262,8 +281,8 @@ bot.on('photo', async (msg) => {
             );
             let imageUri = uploadResult.file.uri;
             let imageMimeType = uploadResult.file.mimeType;
-           
-           
+
+
             let actualLastUsedTime = await queryLastUsedBotTimeFromPinata(telegramUsername);
             // console.log("actual last used time :", actualLastUsedTime);
             let diffInMinutes;
@@ -276,10 +295,10 @@ bot.on('photo', async (msg) => {
             }
             console.log("diff in min : ", diffInMinutes)
             //if the inactivity time is less than 1 then user will ask question
-            if (diffInMinutes =undefined|| diffInMinutes <= 1 || actualLastUsedTime == null) {
+            if (diffInMinutes = undefined || diffInMinutes <= 1 || actualLastUsedTime == null) {
 
                 const fetchModelResponse = await fetch(
-                      `${PUBLIC_BACKEND_BASE_URI}/parse-image`,
+                    `${PUBLIC_BACKEND_BASE_URI}/parse-image`,
                     //  `http://localhost:3000/parse-image`,
                     {
                         method: "POST",
@@ -302,7 +321,7 @@ bot.on('photo', async (msg) => {
                 let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
                 let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}&chat_id=${chatId}`;
                 //   let url = `http://localhost:5173/?username=${telegramUsername}&charge=${totalCharge}`;
-                 console.log("pay url : ", url)
+                console.log("pay url : ", url)
                 const options1 = {
                     reply_markup: {
                         inline_keyboard: [
@@ -319,7 +338,7 @@ bot.on('photo', async (msg) => {
                 // console.log("web app url: ", url);
                 await bot.sendMessage(chatId, "Click the button below to pay for the last used session", options1);
             }
-           
+
 
             // Clean up the temporary file
             //cleaning up the temo generated file using below function
@@ -460,36 +479,6 @@ bot.on('document', async (msg) => {
 });
 
 
-
-// bot.onText(/\/retrive/, async (msg) => {
-//     console.log("on retrive command ")
-//     try {
-//         let chatId = msg.chat.id;
-//         let msg_text = msg.text ? msg.text.trim() : '';
-//         let ipfsHash = msg_text.split(' ')[1];
-// console.log("ipfs hash: ", ipfsHash);
-// const pinataResponse = await retrieveFromPinata(ipfsHash);
-// console.log("retrived data : ", pinataResponse);
-
-// const bufferData=await Buffer.from(await pinataResponse.arrayBuffer())
-//    const tempFilePath = path.join(os.tmpdir(), 'temporary_pdf.pdf');
-
-
-// fs.writeFileSync(tempFilePath, bufferData);
-
-// const text = fs.readFileSync(tempFilePath, 'utf8');
-//         await bot.sendMessage(chatId, "processing....");
-//         await processFile(ipfsHash)
-
-//         await bot.sendMessage(chatId, "file processed successfully . you can ask questions");
-//     } catch (error) {
-
-//         console.log("error ", error.message)
-//     }
-
-// });
-
-
 //on hey command - this command is basically for if someone wants to access his own or others resources . so basicaly he have to type the command like /hey @username query 
 
 bot.onText(/\/hey/, async (msg) => {
@@ -509,7 +498,7 @@ bot.onText(/\/hey/, async (msg) => {
         console.log("question : ", question)
         // Retrieve or initialize embeddings for the user
         userEmbeddings[chatId] = await getAllEmbeddings(dataProvider);
-        // console.log("all retrived embeddings : ", userEmbeddings[chatId]);
+        console.log("all retrived embeddings : ", userEmbeddings[chatId]);
         if (userEmbeddings[chatId].length > 0) {
             //firstly we are checking the last used time from the db . if the user inactive for greater than one min then user have to pay for the last used session and as soon as 
             //payments completes the user time will get set to null
@@ -527,10 +516,18 @@ bot.onText(/\/hey/, async (msg) => {
             //if the inactivity time is less than 1 then user will ask question
             if (diffInMinutes <= 1 || actualLastUsedTime == null) {
 
-                const response = await askQuestionAboutPDF(userEmbeddings[chatId], question)
-                await updateUserDetailsToPinata(telegramUsername, currentTime, dataProvider);
+                //open ai query will be triggered
+                // const response = await askQuestionAboutPDF(userEmbeddings[chatId], question)
+                // cohere RAG query will be triggered
+                const response = await getCohereRAG(userEmbeddings[chatId], question);
+                //with stream send response
 
                 await bot.sendMessage(chatId, response);
+                await updateUserDetailsToPinata(telegramUsername, currentTime, dataProvider);
+                //without streaming send response
+
+
+
             } else {
                 //else user have to pay for the last used session
                 let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
@@ -573,10 +570,10 @@ bot.on('callback_query', async (callbackQuery) => {
     const data = callbackQuery.data;
     const chatId = msg.chat.id;
     if (data === 'mode_gemini') {
-        userModes[chatId] = 'gemini';  // Store the mode for the specific user
+        userModes[chatId] = 'gemini';  // Stores the user specific mode globally
         await bot.sendMessage(chatId, 'You have selected Gemini mode.');
-    } else if (data === 'mode_gpt') {
-        userModes[chatId] = 'gpt';  // Store the mode for the specific user
+    } else if (data === 'mode_cohere') {
+        userModes[chatId] = 'cohere';  // Stores the user specific mode globally
         await bot.sendMessage(chatId, 'You have selected GPT mode.');
     }
 
@@ -585,7 +582,7 @@ bot.on('callback_query', async (callbackQuery) => {
 
 
 
-//on hey command - this command is basically for if someone wants to access his own or others resources . so basicaly he have to type the command like /hey @username query 
+//on generate command - this command is basically used for generating image 
 
 bot.onText(/\/generate/, async (msg) => {
 
@@ -598,7 +595,7 @@ bot.onText(/\/generate/, async (msg) => {
 
         let msg_text = msg.text ? msg.text.trim() : '';
         let encodedMsg = encodeURIComponent(msg_text);
-          
+
         let actualLastUsedTime = await queryLastUsedBotTimeFromPinata(telegramUsername);
         // console.log("actual last used time :", actualLastUsedTime);
         let diffInMinutes;
@@ -611,10 +608,10 @@ bot.onText(/\/generate/, async (msg) => {
         }
         console.log("diff in min : ", diffInMinutes)
         //if the inactivity time is less than 1 then user will ask question
-        if (diffInMinutes =undefined|| diffInMinutes <= 1 || actualLastUsedTime == null) {
+        if (diffInMinutes = undefined || diffInMinutes <= 1 || actualLastUsedTime == null) {
 
             const imageResponse = await fetch(
-                  `${PUBLIC_BACKEND_BASE_URI}/generate-image`,
+                `${PUBLIC_BACKEND_BASE_URI}/generate-image`,
                 //  `http://localhost:3000/generate-image`,
                 {
                     method: "POST",
@@ -622,13 +619,13 @@ bot.onText(/\/generate/, async (msg) => {
                         "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                        
+
                         chatId: chatId,
                         msgText: msg_text,
                     }),
                 },
             );
-            const response = await imageResponse.json(); 
+            const response = await imageResponse.json();
             await updateUserDetailsToPinata(telegramUsername, currentTime, "");
 
             // await bot.sendMessage(chatId, response);
@@ -675,7 +672,7 @@ bot.onText(/\/trade/, async (msg) => {
     try {
 
         let msg_text = msg.text ? msg.text.trim() : '';
-        
+
         let url = `https://tano-wallet.vercel.app/`;
         //  let url = `http://localhost:5173/`;
         console.log("url : ", url);

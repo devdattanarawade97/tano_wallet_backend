@@ -6,17 +6,27 @@ import path from 'path'
 import os from 'os';
 import dotenv from 'dotenv';
 import { PdfReader } from 'pdfreader'
-import {read} from 'xlsx'
+import { read } from 'xlsx'
+import { CohereClient } from 'cohere-ai';
+
 dotenv.config();
 import * as xlsx from 'xlsx';
 
+//import api key 
 const OPEN_API_KEY = process.env.OPEN_API_KEY;
+const COHERE_API_KEY = process.env.COHERE_API_KEY;
 
 // console.log("open ai api key : ", OPEN_API_KEY);
 import OpenAI from "openai";
+import { connectors } from 'cohere-ai/api/index.js';
+import { response } from 'express';
 
+// cohere client
+const cohere = new CohereClient({
+    token: COHERE_API_KEY, // This is your trial API key
+});
 
-
+//open ai client
 const openai = new OpenAI({ apiKey: OPEN_API_KEY });
 
 //this will generate embeddings for each 2000 chars . firstly docs will be splitted into 2000 chars 
@@ -40,15 +50,18 @@ async function generateEmbeddings(text) {
 // Step 2: Store the embeddings (in memory for simplicity)
 let documentEmbeddings = []; // This could be stored in a database for larger documents
 
-export async function processFile(bufferData , docType) {
+export async function processFile(bufferData, docType) {
 
 
     try {
         const text = await extractText(bufferData, docType);
 
         console.log("extracted text : ", text);
+        //open ai embeddings
+        // documentEmbeddings = await generateEmbeddings(text);
+        // cohere embeddings 
+        documentEmbeddings = await getCohereEmbeddings(text);
 
-        documentEmbeddings = await generateEmbeddings(text);
         console.log("Embeddings generated and stored.");
 
     } catch (error) {
@@ -73,6 +86,7 @@ async function findRelevantChunks(documentEmbeddings1, question) {
     }));
 
     similarities.sort((a, b) => b.similarity - a.similarity);
+    console.log("similarities chunk  : ", similarities.slice(0, 3).map(sim => sim.text));
     return similarities.slice(0, 3).map(sim => sim.text); // Return top 3 most similar chunks
 }
 
@@ -111,7 +125,7 @@ function cosineSimilarity(vecA, vecB) {
 
 
 //this will be used for extracting text from the buffer data .
-async function extractText(bufferData,docType) {
+async function extractText(bufferData, docType) {
     try {
 
         const text = [];
@@ -129,18 +143,18 @@ async function extractText(bufferData,docType) {
                 });
             });
         } else if (docType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
-                 // Parse the xlsx buffer
-                 const workbook = xlsx.read(bufferData, { type: 'buffer' });
-                 workbook.SheetNames.forEach(sheetName => {
-                     const worksheet = workbook.Sheets[sheetName];
-                     const sheetData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
-     
-                     // Convert each row to a string and append it to the text array
-                     sheetData.forEach(row => {
-                         text.push(row.join(' '));
-                     });
-                 });
-       }
+            // Parse the xlsx buffer
+            const workbook = xlsx.read(bufferData, { type: 'buffer' });
+            workbook.SheetNames.forEach(sheetName => {
+                const worksheet = workbook.Sheets[sheetName];
+                const sheetData = xlsx.utils.sheet_to_json(worksheet, { header: 1 });
+
+                // Convert each row to a string and append it to the text array
+                sheetData.forEach(row => {
+                    text.push(row.join(' '));
+                });
+            });
+        }
 
 
         console.log("extracted text : ", text.join(' '))
@@ -153,3 +167,91 @@ async function extractText(bufferData,docType) {
 
 
 
+
+
+async function getCohereEmbeddings(texts) {
+    try {
+
+        const chunks = texts.match(/.{1,2000}(\s|$)/g); // Split text into chunks of 2000 characters
+        const embeddings = [];
+
+        for (const chunk of chunks) {
+            const response = await cohere.embed({
+                model: "embed-english-v3.0",
+                texts: [chunk], // Pass the texts as argument
+                inputType: "classification",
+                truncate: "NONE"
+            });
+            console.log(`cohere Embeddings: ${JSON.stringify(response.embeddings[0])}`);
+
+            embeddings.push({ text: chunk, embedding: response.embeddings[0] });
+        }
+
+        return embeddings;
+
+    } catch (error) {
+        console.error("Error fetching  cohere embeddings:", error);
+    }
+}
+
+
+
+// get cohere RAG for search info and relevant documents
+
+/*************  *************/
+/**
+ * @function getCohereRAG
+ * @description This function takes a user query and returns the response from the Cohere RAG model.
+ * @param {string} userQuery - The query to be passed to the Cohere RAG model.
+ * @param {Array<Object>} documentEmbeddings - An array of objects containing the text and embedding of each chunk of the document.
+ * @returns {Promise<string>} - The response from the Cohere RAG model.
+ * @example
+ * const response = await getCohereRAG(documentEmbeddings, "What is the capital of France?");
+ * console.log(response);
+ */
+/****** *******/
+export async function getCohereRAG(documentEmbeddings, userQuery ) {
+
+    try {
+        const relevantChunks = await findRelevantChunks(documentEmbeddings, userQuery);
+        const webSearchResponse = await cohere.chat({
+            model: "command-r-plus-08-2024",
+            message: userQuery,
+            promptTruncation: "AUTO",
+            connectors: [{ "id": "web-search" }],
+
+        })
+        // console.log("web response from cohere : ", webSearchResponse.text);
+
+        const stream = await cohere.chatStream({
+            model: "command-r-plus-08-2024",
+            message: userQuery,
+             documents: [{ userdocs: relevantChunks[0], websearch: webSearchResponse.text }],
+            
+            promptTruncation: "AUTO",
+        })
+
+
+        let streamResponse = "";
+        for await (const chat of stream) {
+            if (chat.eventType === "text-generation") {
+              
+               streamResponse += chat.text;
+
+              
+            }
+       }
+          // console.log("Cohere RAG : ", response);
+
+        // return response.text;
+
+
+        return streamResponse;
+
+    } catch (error) {
+        console.log("error while getting RAG : ", error.message);
+    }
+
+
+
+}

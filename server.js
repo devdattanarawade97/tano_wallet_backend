@@ -12,11 +12,24 @@ import { GoogleAIFileManager } from "@google/generative-ai/server";
 import path from 'path'
 dotenv.config();
 
-
+//open ai api key
 const OPEN_API_KEY = process.env.OPEN_API_KEY;
+import { CohereClient } from 'cohere-ai';
+//cohere api key
+const COHERE_API_KEY = process.env.COHERE_API_KEY;
 
 // console.log("open ai api key : ", OPEN_API_KEY);
 import OpenAI from "openai";
+import { connectors } from 'cohere-ai/api/index.js';
+import { response } from 'express';
+
+// cohere client
+const cohere = new CohereClient({
+    token: COHERE_API_KEY, // This is your trial API key
+});
+
+// console.log("open ai api key : ", OPEN_API_KEY);
+
 const openai = new OpenAI({ apiKey: OPEN_API_KEY });
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -66,17 +79,23 @@ app.post('/notify-transaction', async (req, res) => {
         //     text: `Transaction ${transactionId} is ${status}.`
         // });
 
-        if (model == 'gpt') {
+        if (model == 'cohere') {
 
-            response = await getChatCompletionGPT(msgText);
+          //  response = await getChatCompletionGPT(msgText); //this is gpt model
             // console.log("gpt response : ", response);
+
+            
+            response = await getCohereChat(msgText); // this is cohere  model
+            console.log("cohere response : ", response);
         
         } else {
-            response = await getChatCompletionGemini(msgText);
+            response = await getChatCompletionGemini(msgText); // this is gemini model
             console.log("gemini response : ", response);
     
         }
-        if (response != "") {
+
+        if (response != "") { 
+
             await axios.post(`https://api.telegram.org/bot${TOKEN}/sendMessage`, {
                 chat_id: userId,
                 text: `${response}`
@@ -335,3 +354,43 @@ async function getChatCompletionGPT(msg_text) {
     }
 }
 
+
+
+// get cohere RAG for search info and relevant documents
+
+/**************************/
+/**
+ * @function getCohereChat
+ * @description This function takes a user query and returns the response from the Cohere RAG model.
+ * @param {string} userQuery - The query to be passed to the Cohere RAG model.
+ * @returns {Promise<string>} - The response from the Cohere RAG model.
+ * @example
+ * const response = await getCohereChat("What is the capital of France?");
+ * console.log(response);
+ */
+/****** *******/
+export async function getCohereChat(userQuery ) {
+
+    try {
+      
+        const webSearchResponse = await cohere.chat({
+            model: "command-r-plus-08-2024",
+            message: userQuery,
+            promptTruncation: "AUTO",
+            connectors: [{ "id": "web-search" }],
+
+        })
+    
+           console.log("Cohere RAG : ", webSearchResponse);
+
+         return webSearchResponse.text;
+
+
+
+    } catch (error) {
+        console.log("error while getting cohere chat : ", error.message);
+    }
+
+
+
+}
