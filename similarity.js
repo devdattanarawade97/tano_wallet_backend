@@ -30,6 +30,13 @@ const cohere = new CohereClient({
 const openai = new OpenAI({ apiKey: OPEN_API_KEY });
 
 //this will generate embeddings for each 2000 chars . firstly docs will be splitted into 2000 chars 
+/*
+Step 1: Generate embeddings
+This JavaScript function, `generateEmbeddings`, takes a text input 
+and splits it into chunks of 2000 characters. It then uses the OpenAI API to 
+generate embeddings for each chunk, which are vector representations of the text. 
+The function returns an array of objects, each containing the original chunk of text and its corresponding embedding.
+*/
 async function generateEmbeddings(text) {
     const chunks = text.match(/.{1,2000}(\s|$)/g); // Split text into chunks of 2000 characters
     const embeddings = [];
@@ -50,6 +57,25 @@ async function generateEmbeddings(text) {
 // Step 2: Store the embeddings (in memory for simplicity)
 let documentEmbeddings = []; // This could be stored in a database for larger documents
 
+/*************  *************/
+/**
+ * @function processFile
+ * @description This function takes a file buffer and docType as input, extracts text from the file, generates embeddings for each 2000 characters, and stores them in memory for later querying.
+ * @param {Buffer} bufferData - The raw file data.
+ * @param {string} docType - The type of file ('pdf' or 'csv').
+ * @returns {Promise<Array<{text: string, embedding: number[]}> >} - A promise that resolves to an array of objects, each containing the text of a chunk and its corresponding embedding.
+ * @example
+ * const bufferData = fs.readFileSync('example.pdf');
+ * const docType = 'pdf';
+ * const embeddings = await processFile(bufferData, docType);
+ * console.log(embeddings);
+ * 
+
+This is a JavaScript function named `processFile` that takes a file buffer and document type as input, extracts the text from the file, generates embeddings (vector representations) for the text, and returns the embeddings. 
+The function uses either OpenAI or Cohere embeddings, depending on which line is uncommented.
+ */
+
+/******  *******/
 export async function processFile(bufferData, docType) {
 
 
@@ -73,6 +99,18 @@ export async function processFile(bufferData, docType) {
 
 
 // Step 3: Find relevant chunks based on a question
+/*
+
+
+This function finds the top 3 most relevant text chunks from a list of document embeddings based on a given question. It does this by:
+
+1. Generating an embedding for the question using OpenAI's text-embedding model.
+2. Calculating the cosine similarity between the question embedding and each document embedding.
+3. Sorting the document embeddings by their similarity to the question.
+4. Returning the text of the top 3 most similar chunks.
+
+`backend/similarity.js:findRelevantChunks`
+*/
 async function findRelevantChunks(documentEmbeddings1, question) {
     const response = await openai.embeddings.create({
         model: 'text-embedding-3-small',
@@ -91,6 +129,12 @@ async function findRelevantChunks(documentEmbeddings1, question) {
 }
 
 // Step 4: Query GPT-4 with relevant chunks
+/*
+
+This JavaScript function, `askQuestionAboutPDF`, takes in `documentEmbeddings` and a `question` as input. 
+It uses the embeddings to find the most relevant chunks of text from a document, combines them with the question, 
+and then queries the GPT-3.5-turbo model to generate a response. The function returns the generated response.
+*/
 export async function askQuestionAboutPDF(documentEmbeddings, question) {
     // await processFile(ipfsHash); // Process the file to generate embeddings
     const relevantChunks = await findRelevantChunks(documentEmbeddings, question);
@@ -116,6 +160,10 @@ export async function askQuestionAboutPDF(documentEmbeddings, question) {
 }
 
 // Utility function for cosine similarity
+/*
+This JavaScript function calculates the cosine similarity between two vectors (`vecA` and `vecB`). Cosine similarity is a measure of similarity between two vectors that measures the cosine of the angle between them.
+ The result is a value between -1 (opposite direction) and 1 (same direction), where 0 means the vectors are orthogonal (perpendicular).
+*/
 function cosineSimilarity(vecA, vecB) {
     const dotProduct = vecA.reduce((acc, val, i) => acc + val * vecB[i], 0);
     const magnitudeA = Math.sqrt(vecA.reduce((acc, val) => acc + val * val, 0));
@@ -125,6 +173,11 @@ function cosineSimilarity(vecA, vecB) {
 
 
 //this will be used for extracting text from the buffer data .
+/*
+This JavaScript function, `extractText`, takes in `bufferData` and `docType` as input. 
+It extracts text from the buffer data based on the document type, which can be either a PDF or an Excel spreadsheet (xlsx). The function uses the `PdfReader` library for PDFs and the `xlsx` library for Excel files. 
+It returns the extracted text as a single string.
+*/
 async function extractText(bufferData, docType) {
     try {
 
@@ -169,6 +222,23 @@ async function extractText(bufferData, docType) {
 
 
 
+/*************   *************/
+/**
+ * @function getCohereEmbeddings
+ * @description This function takes a string, splits it into chunks of 2000 characters, and uses the Cohere AI model to generate embeddings for each chunk.
+ * @param {string} texts - The text to be processed.
+ * @returns {Promise<Array<{text: string, embedding: number[]}> >} - A promise that resolves to an array of objects, each containing the text of a chunk and its corresponding embedding.
+ * @example
+ * const texts = "This is a sample text";
+ * const embeddings = await getCohereEmbeddings(texts);
+ * console.log(embeddings);
+ * 
+
+This JavaScript function, `getCohereEmbeddings`, takes a string input, splits it into 2000-character chunks, and uses the Cohere AI model to generate vector embeddings for each chunk. It returns a promise that resolves to an array of objects, each containing the original chunk text and its corresponding embedding.
+
+In other words, it converts text into numerical representations that can be used for various NLP tasks.
+ */
+/******   *******/
 async function getCohereEmbeddings(texts) {
     try {
 
@@ -208,6 +278,15 @@ async function getCohereEmbeddings(texts) {
  * @example
  * const response = await getCohereRAG(documentEmbeddings, "What is the capital of France?");
  * console.log(response);
+ * This code snippet defines a function named `getCohereRAG` in JavaScript. The function takes two parameters: `documentEmbeddings`, which is an array of objects containing text and embeddings, and `userQuery`, which is a string representing a user query. The function is documented using JSDoc comments, indicating that it returns a Promise that resolves to a string, which is the response from the Cohere RAG model.
+
+Inside the function, it first calls the `findRelevantChunks` function to get a list of relevant chunks based on the `documentEmbeddings` and `userQuery`. Then, it makes a chat request to the Cohere RAG model using the `cohere.chat` function, passing the `userQuery` and some options. The response from the chat request is stored in the `webSearchResponse` variable.
+
+Next, it makes a chat stream request to the Cohere RAG model using the `cohere.chatStream` function, passing the `userQuery` and some options. The `documents` option is set to an object containing the first relevant chunk from the previous step and the `webSearchResponse` text.
+
+Inside the loop, it checks if the `chat` object has an `eventType` property equal to "text-generation". If it does, it appends the `chat.text` to the `streamResponse` string.
+
+Finally, it returns the `streamResponse` string. If an error occurs during the execution of the function, it logs the error message to the console.
  */
 /****** *******/
 export async function getCohereRAG(documentEmbeddings, userQuery ) {

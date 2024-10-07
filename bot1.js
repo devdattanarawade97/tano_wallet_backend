@@ -1,7 +1,6 @@
 
 
 // imports for bot
-
 import dotenv from 'dotenv';
 import telegramBot from 'node-telegram-bot-api';
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -138,7 +137,7 @@ bot.on('message', async (msg) => {
                     if (diffInMinutes = undefined || diffInMinutes <= 1 || actualLastUsedTime == null) {
 
                         const fetchModelResponse = await fetch(
-                             `${PUBLIC_BACKEND_BASE_URI}/notify-transaction`,
+                            `${PUBLIC_BACKEND_BASE_URI}/notify-transaction`,
                             //    `http://localhost:3000/notify-transaction`,
                             {
                                 method: "POST",
@@ -664,7 +663,7 @@ bot.onText(/\/generate/, async (msg) => {
 });
 
 
-
+//for trade command
 bot.onText(/\/trade/, async (msg) => {
 
     console.log("on trade command ")
@@ -691,12 +690,10 @@ bot.onText(/\/trade/, async (msg) => {
                 ]
             }
         };
+
         // console.log("web app url: ", url);
         // await bot.sendMessage(chatId, `${url}`);
         await bot.sendMessage(chatId, "Click the button below to trade", options1);
-
-
-
 
 
     } catch (error) {

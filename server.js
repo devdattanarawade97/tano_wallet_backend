@@ -280,6 +280,13 @@ async function extractTransactionHash(boc) {
 
 
 //this is for the chat completion using gemini
+/*
+This code snippet defines an asynchronous function called `getChatCompletionGemini` that takes a `msg_text` parameter. 
+Inside the function, it uses the `genAI` object to retrieve a generative model with the name "gemini-1.5-flash". 
+It then generates content using the model and the `msg_text` as the prompt. The generated content is stored in the `result` variable. 
+The function then extracts the response from the `result` and converts it to plain text. Finally, it removes any occurrences of "**" from the response and returns the cleaned response.
+
+*/
 async function getChatCompletionGemini(msg_text) {
     try {
 
@@ -303,6 +310,13 @@ async function getChatCompletionGemini(msg_text) {
 
 
 //this is for the image completion using gemini
+/*
+
+
+This JavaScript function, `getImageCompletionGemini`, generates a text description of an image using the Gemini model. 
+It takes an image's URI and MIME type as input, passes them to the model, and returns the generated text description. 
+If an error occurs, it logs the error to the console.
+*/
 async function getImageCompletionGemini(imageUri, imageMimeType) {
 
     try {
@@ -326,6 +340,12 @@ async function getImageCompletionGemini(imageUri, imageMimeType) {
 
 
 //this if for the text completion using gpt
+/*
+
+
+This JavaScript function, `getChatCompletionGPT`, generates a text response using the GPT-3.5-turbo model.
+ It takes a `msg_text` parameter, passes it to the model as a user message, and returns the generated response after removing any double asterisks (`**`).
+*/
 async function getChatCompletionGPT(msg_text) {
     try {
 
@@ -367,6 +387,11 @@ async function getChatCompletionGPT(msg_text) {
  * @example
  * const response = await getCohereChat("What is the capital of France?");
  * console.log(response);
+ * 
+
+This JavaScript function, `getCohereChat`, sends a user query to the Cohere RAG model and returns the response as a string.
+ It uses the `cohere.chat` method to make a request to the model with the provided query and options, and logs any errors that occur.
+ The function is asynchronous and returns a Promise that resolves to the response text.
  */
 /****** *******/
 export async function getCohereChat(userQuery ) {
