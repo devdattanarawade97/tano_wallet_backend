@@ -776,7 +776,6 @@ bot.onText(/\/translate/, async (msg) => {
         }
 
 
-
     } catch (error) {
 
         console.log("error ", error.message)
