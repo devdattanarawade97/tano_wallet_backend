@@ -775,6 +775,7 @@ bot.onText(/\/translate/, async (msg) => {
             await bot.sendMessage(chatId, "Click the button below to pay for the last used session", options1);
         }
 
+        
 
     } catch (error) {
 
