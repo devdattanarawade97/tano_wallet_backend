@@ -12,7 +12,14 @@ const pinata = new PinataSDK({
 });
 
 //this function used for uploadin file to pinata
-//takes parameter as fileData - means embeddings and telegramuser using 
+
+/*
+
+
+This JavaScript function, `uploadToPinata`, uploads JSON data to Pinata, a decentralized storage service, using the Pinata SDK. 
+It takes two parameters: `fileData` (the data to be uploaded) and `telegramUsername` (used as metadata for the upload). The function logs the upload details and IPFS hash to the console, and catches any errors that occur during the upload process.
+
+*/
 export const uploadToPinata = async function (fileData, telegramUsername) {
 
   let upload;
@@ -42,6 +49,21 @@ export const uploadToPinata = async function (fileData, telegramUsername) {
 //this function used for creating new user if the new user is not available in the db .
 //takes param input as telegram username , file name , embeddings , queryprice
 //if the user is not available then new user will be created else the existing user will be updated
+/*
+
+
+This is a JavaScript function named `createPinataUser` that creates a new user or updates an existing one on Pinata, a decentralized storage service. It takes four parameters: `telegramUsername`, `fileName`, `fileEmbeddings`, and `queryPrice`. 
+
+Here's a succinct breakdown:
+
+1. It checks if a user with the given `telegramUsername` already exists on Pinata.
+2. If the user doesn't exist, it creates a new user object with the provided details and uploads it to Pinata.
+3. If the user already exists, it retrieves the user's details, updates the query price and adds a new file embedding, then re-uploads the updated user data to Pinata.
+
+The function uses Pinata's SDK to interact with the service, and it handles errors by logging them to the console. 
+
+Note that this function is referenced in the provided context from `backend/pinataServices.js:createPinataUser`.
+*/
 export const createPinataUser = async function (telegramUsername, fileName, fileEmbeddings, queryPrice) {
 
 
@@ -116,6 +138,12 @@ export const createPinataUser = async function (telegramUsername, fileName, file
 }
 
 //this is for retriving user using ipfs hash . which is unique inside the each user details logs
+/*
+
+
+This JavaScript function, `retrieveFromPinata`, retrieves user data from Pinata, a decentralized storage service, using a unique IPFS hash. 
+It attempts to fetch the data, logs the result, and returns the retrieved data. If an error occurs, it logs the error and re-throws it.
+*/
 export const retrieveFromPinata = async function (ipfsHash) {
   try {
     const retrievedData = await pinata.gateways.get(ipfsHash);
@@ -130,6 +158,16 @@ export const retrieveFromPinata = async function (ipfsHash) {
 
 
 //this fuction used for deleting the user using ipfs hash 
+/*
+This code snippet defines an asynchronous function called `unpinPinataData` that takes an `ipfsHash` as an argument. It attempts to delete a user from Pinata, a decentralized storage service, using the provided `ipfsHash`. 
+
+Inside the function, it uses the `pinata.unpin()` method to unpin the data associated with the `ipfsHash`. The result of the unpinning operation is stored in the `unpinnedData` variable. 
+
+The function then logs the `unpinnedData` to the console. If an error occurs during the unpinning process, it logs the error and re-throws it.
+
+In summary, this code snippet provides a way to delete a user from Pinata using their `ipfsHash`.
+
+*/
 export const unpinPinataData = async function (ipfsHash) {
   try {
     const unpinnedData = await pinata.unpin([ipfsHash])
@@ -144,6 +182,22 @@ export const unpinPinataData = async function (ipfsHash) {
 
 //this is used for getting all the stored embeddings from pinata using the user name
 //each user is uniquely identified using username
+/*
+This JavaScript code snippet defines an asynchronous function named `getAllEmbeddings` that retrieves all the stored embeddings from the Pinata storage service based on a given `telegramUsername`. The function takes a `telegramUsername` as a parameter and returns an array of embeddings.
+
+Here's a step-by-step explanation of what the code does:
+
+1. It initializes an empty array called `allEmbeddings` to store the retrieved embeddings.
+2. It uses the `pinata.listFiles().name(telegramUsername)` method to get a list of files from Pinata that have a name matching the `telegramUsername`.
+3. It logs the user with the name to the console.
+4. It calls the `retrieveFromPinata` function, passing the IPFS hash of the first file in the list, to retrieve the user's data from Pinata.
+5. It iterates over the `embeddings` array in the retrieved user's JSON data and pushes the first element of each embedding array into the `allEmbeddings` array.
+6. It logs the retrieved user's JSON data to the console.
+7. If any errors occur during the process, it logs the error message to the console.
+8. Finally, it returns the `allEmbeddings` array.
+
+Overall, this code snippet provides a way to retrieve all the stored embeddings for a specific user from the Pinata storage service.
+*/
 export const getAllEmbeddings = async function (telegramUsername) {
 
   let allEmbeddings = [];
@@ -167,6 +221,23 @@ export const getAllEmbeddings = async function (telegramUsername) {
 
 
 //this is used for updating existing files to pinata .
+/*
+
+
+This JavaScript function, `updateFilesToPinata`, updates an existing file on Pinata, a decentralized storage service, for a specific user identified by their `telegramUsername`. It takes three parameters: `telegramUsername`, `fileName`, and `pdfBuffer`. 
+
+Here's a succinct breakdown:
+
+1. It retrieves the user's data from Pinata using `telegramUsername`.
+2. If the user exists, it processes the `pdfBuffer` to generate new embeddings.
+3. It then updates the user's data by replacing the embeddings of the file with the matching `fileName`.
+4. If the file is not found, it returns an error message.
+5. Finally, it uploads the updated user data to Pinata and unpins the old data.
+
+The function returns a success or error message as a response. 
+
+This function is referenced in the provided context from `backend/pinataServices.js:updateFilesToPinata`.
+*/
 export const updateFilesToPinata = async function (telegramUsername, fileName, pdfBuffer) {
 
   let response;
@@ -212,6 +283,24 @@ export const updateFilesToPinata = async function (telegramUsername, fileName, p
 
 //this function basically used whenever user queries the total charge and the last used time will be recalculated and updated accordingly for each query to maintain the used session
 
+/**
+ * This function is used to update the user details in Pinata. It takes three parameters: `telegramUsername`, `lastUsedTime`, and `dataProvider`. 
+ * It retrieves the user's data from Pinata using the `telegramUsername`, updates the `lastUsedTime` and `totalCharge` fields of the user's data, and then 
+ * uploads the updated user data to Pinata and unpins the old data. The `dataProvider` parameter is used to fetch the query price from Pinata for the user who 
+ * uploaded the PDF, and then this query price is added to the total charge of the user who queried the PDF. If the `dataProvider` parameter is empty, a default 
+ * query charge of 0.0001 is added to the total charge of the user who queried the PDF. The function returns a success or error message as a response.
+ * 
+ * @param {string} telegramUsername - The username of the user to be updated in Pinata.
+ * @param {string} lastUsedTime - The last used time of the user to be updated in Pinata.
+ * @param {string} dataProvider - The username of the user who uploaded the PDF, used to fetch the query price from Pinata.
+ * 
+ * 
+
+This is the `updateUserDetailsToPinata` function from your codebase (`backend/pinataServices.js:updateUserDetailsToPinata`). 
+
+It updates a user's details in Pinata, specifically their last used time and total charge. The total charge is updated by adding a query price,
+ which is either fetched from Pinata using the `dataProvider` parameter or set to a default value of 0.0001 if `dataProvider` is empty.
+ */
 export const updateUserDetailsToPinata = async function (telegramUsername, lastUsedTime, dataProvider) {
   let retrivedQueryPrice=0;
   try {
@@ -245,6 +334,22 @@ export const updateUserDetailsToPinata = async function (telegramUsername, lastU
 
 //this function is used basically to fetch the last used time from pinata using username
 
+/**
+ * This function is used to fetch the last used time from Pinata using the username. It takes one parameter: `telegramUsername`. If the user exists in Pinata, it
+ * retrieves the user's data from Pinata using the `telegramUsername`, extracts the `lastUsedTime` field, and returns it. If the user does not exist, it creates a new
+ * user object with default values and uploads it to Pinata. The function returns the `lastUsedTime` as a response. If an error occurs, it logs the error message and
+ * returns `null`.
+ * @param {string} telegramUsername - The username of the user to be queried in Pinata.
+ * @returns {string|null} - The last used time of the user, or `null` if an error occurs.
+ * 
+ * 
+
+This is the `queryLastUsedBotTimeFromPinata` function from your codebase (`backend/pinataServices.js:queryLastUsedBotTimeFromPinata`). 
+
+It fetches the last used time of a user from Pinata using their Telegram username. If the user exists, it retrieves their data and returns the last used time. If the user doesn't exist, it creates a new user 
+object with default values and uploads it to Pinata. If an error occurs, it logs the error and returns `null`.
+ * 
+ */
 export const queryLastUsedBotTimeFromPinata = async function (telegramUsername) {
   let lastUsedTime = null;
   try {
@@ -284,6 +389,19 @@ export const queryLastUsedBotTimeFromPinata = async function (telegramUsername) 
 }
 
 //this function is used for retriving user specific total charge 
+/*
+
+
+This is the `retriveTotalChargeFromPinata` function from your codebase (`backend/pinataServices.js:retriveTotalChargeFromPinata`). 
+
+It retrieves a user's total charge from Pinata using their Telegram username. It does this by:
+
+1. Finding the user's data in Pinata using `pinata.listFiles().name(telegramUsername)`.
+2. Extracting the user's JSON data from Pinata using `retrieveFromPinata(user[0].ipfs_pin_hash)`.
+3. Returning the `totalCharge` field from the user's JSON data as a number.
+
+If an error occurs during this process, it logs the error message and returns `NaN` (Not a Number) because `totalUsedCharge` is not defined in the catch block.
+*/
 export const retriveTotalChargeFromPinata = async function (telegramUsername) {
   let totalUsedCharge;
   try {
@@ -306,6 +424,17 @@ export const retriveTotalChargeFromPinata = async function (telegramUsername) {
 
 
 //this is for the fetching the user specific query charge set by the user
+/*
+
+
+This JavaScript function, `retriveQueryPriceFromPinata`, retrieves a user's query price from Pinata, a decentralized data storage service, using their Telegram username. It does this by:
+
+1. Finding the user's data in Pinata using `pinata.listFiles().name(telegramUsername)`.
+2. Extracting the user's JSON data from Pinata using `retrieveFromPinata(user[0].ipfs_pin_hash)`.
+3. Returning the `queryPrice` field from the user's JSON data.
+
+If an error occurs, it logs the error message and returns `undefined` (since `retrivedQueryPrice` is not defined in the catch block).
+*/
 export const retriveQueryPriceFromPinata = async function (telegramUsername) {
 
   let retrivedQueryPrice;

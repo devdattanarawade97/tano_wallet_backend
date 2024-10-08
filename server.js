@@ -239,6 +239,22 @@ app.listen(3000, () => {
 
 
 
+/************* *************/
+/**
+ * Extracts a transaction hash from a BOC (Bag of Cells) representation.
+ * @param {Uint8Array} boc - BOC representation of a transaction.
+ * @returns {Promise<string>} - Transaction hash as a hexadecimal string.
+ * @throws {Error} - If the BOC is invalid or does not contain a transaction cell.
+ * 
+ * 
+
+This is a JavaScript function named `extractTransactionHash` that takes a BOC (Bag of Cells) representation of a transaction as input and returns a promise that resolves to the transaction hash as a hexadecimal string. 
+
+The function uses the `TonWeb` library to parse the BOC and extract the transaction hash. If the BOC is invalid or does not contain a transaction cell, the function throws an error. 
+
+The function also includes commented-out code that shows alternative ways to achieve the same result using different libraries (`ton-sdk` and `@ton/core`).
+ */
+/******  *******/
 async function extractTransactionHash(boc) {
     try {
         const tonWeb = new TonWeb();
@@ -341,7 +357,6 @@ async function getImageCompletionGemini(imageUri, imageMimeType) {
 
 //this if for the text completion using gpt
 /*
-
 
 This JavaScript function, `getChatCompletionGPT`, generates a text response using the GPT-3.5-turbo model.
  It takes a `msg_text` parameter, passes it to the model as a user message, and returns the generated response after removing any double asterisks (`**`).
