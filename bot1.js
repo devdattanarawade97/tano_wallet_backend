@@ -13,7 +13,7 @@ import { uploadToPinata, retrieveFromPinata, createPinataUser, getAllEmbeddings,
 import os from 'os';
 import { askQuestionAboutPDF, processFile, getCohereRAG } from './similarity.js'
 import OpenAI from "openai";
-import { createOrder } from './coingate.js';
+
 
 // Access your API key as an environment variable (see "Set up your API key" above)
 
