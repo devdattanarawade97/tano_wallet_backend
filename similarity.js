@@ -303,7 +303,7 @@ export async function getCohereRAG(documentEmbeddings, userQuery) {
         // console.log("web response from cohere : ", webSearchResponse.text);
       
         // for streaming purpose 
-        
+
         //     const stream = await cohere.chatStream({
         //         model: "command-r-plus-08-2024",
         //         message: userQuery,
@@ -329,7 +329,7 @@ export async function getCohereRAG(documentEmbeddings, userQuery) {
         const resonse = await cohere.chat({
             model: "command-r-plus-08-2024",
             message: userQuery,
-            documents: [{ userdocs: relevantChunks[0], websearch: webSearchResponse.text }],
+            documents: [{ userdocs: relevantChunks[0], websearch: webSearchResponse.text ? webSearchResponse.text : "" }],
 
             promptTruncation: "AUTO",
         })
