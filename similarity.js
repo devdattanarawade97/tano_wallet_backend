@@ -329,7 +329,7 @@ export async function getCohereRAG(documentEmbeddings, userQuery) {
         const resonse = await cohere.chat({
             model: "command-r-plus-08-2024",
             message: userQuery,
-            documents: [{ userdocs: relevantChunks[0], websearch: webSearchResponse.text ? webSearchResponse.text : "" }],
+            documents: [{ userdocs: relevantChunks[0], websearch: webSearchResponse ? webSearchResponse.text : "" }],
 
             promptTruncation: "AUTO",
         })
