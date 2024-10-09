@@ -13,6 +13,7 @@ import { uploadToPinata, retrieveFromPinata, createPinataUser, getAllEmbeddings,
 import os from 'os';
 import { askQuestionAboutPDF, processFile, getCohereRAG } from './similarity.js'
 import OpenAI from "openai";
+import { createOrder } from './coingate.js';
 
 // Access your API key as an environment variable (see "Set up your API key" above)
 
@@ -99,7 +100,7 @@ bot.on('message', async (msg) => {
                                         callback_data: 'mode_gemini',
                                     },
                                     {
-                                        text: 'GPT Mode',
+                                        text: 'Cohere Mode',
                                         callback_data: 'mode_cohere',
                                     },
                                 ],
@@ -705,82 +706,6 @@ bot.onText(/\/trade/, async (msg) => {
 });
 
 
-//on translate command - this command basically used for translating doc
 
-bot.onText(/\/translate/, async (msg) => {
 
-    console.log("on translate command ")
-    let chatId = msg.chat.id;
-    let telegramUsername = msg.from.username;
-    let currentTime = new Date();
-    let command = "translate";
-    try {
 
-        let msg_text = msg.text ? msg.text.trim() : '';
-        let encodedMsg = encodeURIComponent(msg_text);
-
-        let actualLastUsedTime = await queryLastUsedBotTimeFromPinata(telegramUsername);
-        // console.log("actual last used time :", actualLastUsedTime);
-        let diffInMinutes;
-        //initially user time will be set to null 
-        if (actualLastUsedTime !== null) {
-            const timeDiff = currentTime.getTime() - new Date(actualLastUsedTime).getTime();
-
-            diffInMinutes = timeDiff / (1000 * 60);
-
-        }
-        console.log("diff in min : ", diffInMinutes)
-        //if the inactivity time is less than 1 then user will ask question
-        if (diffInMinutes = undefined || diffInMinutes <= 1 || actualLastUsedTime == null) {
-
-            const imageResponse = await fetch(
-                `${PUBLIC_BACKEND_BASE_URI}/generate-image`,
-                //  `http://localhost:3000/generate-image`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-
-                        chatId: chatId,
-                        msgText: msg_text,
-                    }),
-                },
-            );
-            const response = await imageResponse.json();
-            await updateUserDetailsToPinata(telegramUsername, currentTime, "");
-
-            // await bot.sendMessage(chatId, response);
-        } else {
-            //else user have to pay for the last used session
-            let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
-            let url = `https://tano-wallet.vercel.app/?username=${telegramUsername}&charge=${totalCharge}&chat_id=${chatId}`;
-            //   let url = `http://localhost:5173/?username=${telegramUsername}&charge=${totalCharge}`;
-            // console.log("pay url : ", url)
-            const options1 = {
-                reply_markup: {
-                    inline_keyboard: [
-                        [
-                            {
-                                text: 'Pay',
-                                web_app: { url: url },
-                            },
-
-                        ]
-                    ]
-                }
-            };
-            // console.log("web app url: ", url);
-            await bot.sendMessage(chatId, "Click the button below to pay for the last used session", options1);
-        }
-
-        
-
-    } catch (error) {
-
-        console.log("error ", error.message)
-        let errorMessage = "something went wrong while creating image";
-        await bot.sendMessage(chatId, errorMessage);
-    }
-});

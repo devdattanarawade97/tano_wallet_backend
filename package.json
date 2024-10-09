@@ -29,6 +29,7 @@
     "tonweb": "^0.0.66"
   },
   "devDependencies": {
+    "@coingate/coingate-sdk": "^1.1.2",
     "@google/generative-ai": "^0.17.0",
     "@huggingface/inference": "^2.8.0",
     "@langchain/community": "^0.3.0",

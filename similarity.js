@@ -289,7 +289,7 @@ Inside the loop, it checks if the `chat` object has an `eventType` property equa
 Finally, it returns the `streamResponse` string. If an error occurs during the execution of the function, it logs the error message to the console.
  */
 /****** *******/
-export async function getCohereRAG(documentEmbeddings, userQuery ) {
+export async function getCohereRAG(documentEmbeddings, userQuery) {
 
     try {
         const relevantChunks = await findRelevantChunks(documentEmbeddings, userQuery);
@@ -301,31 +301,42 @@ export async function getCohereRAG(documentEmbeddings, userQuery ) {
 
         })
         // console.log("web response from cohere : ", webSearchResponse.text);
+      
+        // for streaming purpose 
+        
+        //     const stream = await cohere.chatStream({
+        //         model: "command-r-plus-08-2024",
+        //         message: userQuery,
+        //          documents: [{ userdocs: relevantChunks[0], websearch: webSearchResponse.text }],
 
-        const stream = await cohere.chatStream({
+        //         promptTruncation: "AUTO",
+        //     })
+
+
+        //     let streamResponse = "";
+        //     for await (const chat of stream) {
+        //         if (chat.eventType === "text-generation") {
+
+        //            streamResponse += chat.text;
+
+
+        //         }
+        //    }
+        // console.log("Cohere RAG : ", response);
+        //     return streamResponse;
+
+
+        const resonse = await cohere.chat({
             model: "command-r-plus-08-2024",
             message: userQuery,
-             documents: [{ userdocs: relevantChunks[0], websearch: webSearchResponse.text }],
-            
+            documents: [{ userdocs: relevantChunks[0], websearch: webSearchResponse.text }],
+
             promptTruncation: "AUTO",
         })
+        return response.text;
 
 
-        let streamResponse = "";
-        for await (const chat of stream) {
-            if (chat.eventType === "text-generation") {
-              
-               streamResponse += chat.text;
 
-              
-            }
-       }
-          // console.log("Cohere RAG : ", response);
-
-        // return response.text;
-
-
-        return streamResponse;
 
     } catch (error) {
         console.log("error while getting RAG : ", error.message);
