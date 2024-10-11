@@ -26,7 +26,7 @@ dotenv.config();
 const TOKEN = process.env.TOKEN;
 //open ai api key
 const OPEN_API_KEY = process.env.OPEN_API_KEY;
-//public base backend url 
+//public base backend URI 
 const PUBLIC_BACKEND_BASE_URI = process.env.PUBLIC_BACKEND_BASE_URI;
 //open ai and gemini config
 const openai = new OpenAI({ apiKey: OPEN_API_KEY });
@@ -352,8 +352,8 @@ bot.on('photo', async (msg) => {
 });
 
 
-// when user sends the document to bot with caption that includes price of the each query
-//note -   user have to sent price of the query in the caption while uploading each file 
+//when user sends the document to bot with caption that includes price of the each query
+//note -   user have to send price of the query in the caption while uploading each file 
 bot.on('document', async (msg) => {
 
 
@@ -480,7 +480,8 @@ bot.on('document', async (msg) => {
 });
 
 
-//on hey command - this command is basically for if someone wants to access his own or others resources . so basicaly he have to type the command like /hey @username query 
+//on hey command - this command is basically for if someone wants to access his own or others resources . 
+//so he have to type the command like /hey @username query 
 
 bot.onText(/\/hey/, async (msg) => {
 
@@ -517,7 +518,7 @@ bot.onText(/\/hey/, async (msg) => {
             //if the inactivity time is less than 1 then user will ask question
             if (diffInMinutes <= 1 || actualLastUsedTime == null) {
 
-                //open ai query will be triggered
+                //openai query will be triggered
                 // const response = await askQuestionAboutPDF(userEmbeddings[chatId], question)
                 // cohere RAG query will be triggered
                 const response = await getCohereRAG(userEmbeddings[chatId], question);
@@ -575,7 +576,7 @@ bot.on('callback_query', async (callbackQuery) => {
         await bot.sendMessage(chatId, 'You have selected Gemini mode.');
     } else if (data === 'mode_cohere') {
         userModes[chatId] = 'cohere';  // Stores the user specific mode globally
-        await bot.sendMessage(chatId, 'You have selected GPT mode.');
+        await bot.sendMessage(chatId, 'You have selected Cohere mode.');
     }
 
 
@@ -583,7 +584,7 @@ bot.on('callback_query', async (callbackQuery) => {
 
 
 
-//on generate command - this command is basically used for generating image 
+//on generate command - this command is  used for generating image 
 
 bot.onText(/\/generate/, async (msg) => {
 

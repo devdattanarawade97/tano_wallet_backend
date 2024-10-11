@@ -3,7 +3,7 @@ import axios from 'axios';
 import dotenv from 'dotenv';
 import { TONClient } from "ton-client-node-js";
 import TonWeb from "tonweb";
-//----------------- bot - -------------
+//----------------- AI imports- -------------
 
 
 import { GoogleGenerativeAI } from '@google/generative-ai';
@@ -36,7 +36,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 
-//--------------------bot----------
+//--------------------AI imports----------
 
 import { updateUserDetailsToPinata } from './pinataServices.js';
 import { Cell } from '@ton/core';
@@ -44,7 +44,9 @@ const endpointUrl = "https://testnet.toncenter.com/api/v2/jsonRPC"; // Replace w
 const client = new TONClient({ endpoint: endpointUrl });
 import cors from 'cors';
 
+//env config
 dotenv.config();
+// app intialization
 const app = express();
 app.use(express.json());
 const TOKEN = process.env.TOKEN;
@@ -147,7 +149,7 @@ app.post('/parse-image', async (req, res) => {
     }
 });
 
-
+//for confirming transaction
 app.post('/confirm-transaction', async (req, res) => {
 
     let response = "";
