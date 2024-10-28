@@ -135,11 +135,12 @@ bot.on('message', async (msg) => {
                     }
                     console.log("diff in min : ", diffInMinutes)
                     //if the inactivity time is less than 1 then user query will be processed by bot in below logic
-                    if (diffInMinutes = undefined || diffInMinutes <= 1 || actualLastUsedTime == null) {
+                    if (diffInMinutes = undefined || diffInMinutes <= 10 || actualLastUsedTime == null) {
 
+                        //====================================  backend server response=================================
                         const fetchModelResponse = await fetch(
                             `${PUBLIC_BACKEND_BASE_URI}/notify-transaction`,
-                            //    `http://localhost:3000/notify-transaction`,
+                            // `http://localhost:3000/notify-transaction`,
                             {
                                 method: "POST",
                                 headers: {
@@ -154,10 +155,30 @@ bot.on('message', async (msg) => {
                                 }),
                             },
                         );
+                        //====================================  backend server response=================================
+                        //============================= agent response - use this for agentic response ======================== 
+                        // const fetchModelResponse = await fetch(
+                        //     // `${PUBLIC_BACKEND_BASE_URI}/text-query`,
+                        //         `http://127.0.0.1:8000/text-query`,
+                        //     {
+                        //         method: "POST",
+                        //         headers: {
+                        //             "Content-Type": "application/json",
+                        //         },
+                        //         body: JSON.stringify({
+                        //             user_message: msg_text,
+
+                        //         }),
+                        //     },
+                        // );
+                        // const response = await fetchModelResponse.json();
+                        // console.log(`AI response : ${response.content}`);
+                        //  await bot.sendMessage(chatId, response.content);
+                        //============================= agent response ======================== 
                         const response = await fetchModelResponse.json();
                         await updateUserDetailsToPinata(telegramUsername, currentTime, "");
 
-                        // await bot.sendMessage(chatId, response);
+
                     } else {
                         //else user have to pay for the last used session
                         let totalCharge = await retriveTotalChargeFromPinata(telegramUsername);
