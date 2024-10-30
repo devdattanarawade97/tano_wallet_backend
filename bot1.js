@@ -135,7 +135,7 @@ bot.on('message', async (msg) => {
                     }
                     console.log("diff in min : ", diffInMinutes)
                     //if the inactivity time is less than 1 then user query will be processed by bot in below logic
-                    if (diffInMinutes = undefined || diffInMinutes <= 10 || actualLastUsedTime == null) {
+                    if (diffInMinutes = undefined || diffInMinutes <= 1 || actualLastUsedTime == null) {
 
                         //====================================  backend server response=================================
                         const fetchModelResponse = await fetch(
@@ -537,15 +537,20 @@ bot.onText(/\/hey/, async (msg) => {
             }
             console.log("diff in min : ", diffInMinutes)
             //if the inactivity time is less than 1 then user will ask question
-            if (diffInMinutes <= 1 || actualLastUsedTime == null) {
+            if (diffInMinutes <= 10 || actualLastUsedTime == null) {
 
                 //openai query will be triggered
                 // const response = await askQuestionAboutPDF(userEmbeddings[chatId], question)
                 // cohere RAG query will be triggered
                 const response = await getCohereRAG(userEmbeddings[chatId], question);
+                //*******agent response commented code ****** */
+                // const textResponse = response.content;
+                // console.log(`AI response : ${textResponse}`);
+                // await bot.sendMessage(chatId, textResponse);
+                    //*******agent response commented code ****** */
                 //with stream send response
 
-                await bot.sendMessage(chatId, response);
+                 await bot.sendMessage(chatId, response);
                 await updateUserDetailsToPinata(telegramUsername, currentTime, dataProvider);
                 //without streaming send response
 

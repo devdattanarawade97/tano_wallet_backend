@@ -293,6 +293,34 @@ export async function getCohereRAG(documentEmbeddings, userQuery) {
 
     try {
         const relevantChunks = await findRelevantChunks(documentEmbeddings, userQuery);
+      
+        //***********commented code for agent response ************ */
+        // let relevantText = "";
+        // for (const chunk of relevantChunks) {
+        //     relevantText += chunk + "\n\n";
+        // }
+        // console.log("relevant text: ", relevantText);
+        // const fetchModelResponse = await fetch(
+        //                     // `${PUBLIC_BACKEND_BASE_URI}/text-query`,
+        //                         `http://127.0.0.1:8000/docs-query`,
+        //                     {
+        //                         method: "POST",
+        //                         headers: {
+        //                             "Content-Type": "application/json",
+        //                         },
+        //                         body: JSON.stringify({
+        //                             user_query: userQuery,
+        //                             relevant_docs: relevantText,
+
+        //                         }),
+        //                     },
+        //                 );
+        // const response = await fetchModelResponse.json();
+        // console.log("response from  docs-query: ", response);
+
+        // return response;
+            
+        //***********commented code for agent response ************ */
         const webSearchResponse = await cohere.chat({
             model: "command-r-plus-08-2024",
             message: userQuery,
@@ -300,6 +328,8 @@ export async function getCohereRAG(documentEmbeddings, userQuery) {
             connectors: [{ "id": "web-search" }],
 
         })
+
+        //************commented portion************** */
         // console.log("web response from cohere : ", webSearchResponse.text);
       
         // for streaming purpose 
@@ -325,7 +355,7 @@ export async function getCohereRAG(documentEmbeddings, userQuery) {
         // console.log("Cohere RAG : ", response);
         //     return streamResponse;
 
-       
+        //************commented portion************** */
         const response = await cohere.chat({
             model: "command-r-plus-08-2024",
             message: userQuery,
