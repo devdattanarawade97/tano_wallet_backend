@@ -367,6 +367,7 @@ export async function getCohereRAG(documentEmbeddings, userQuery) {
 
 
 
+        
 
     } catch (error) {
         console.log("error while getting RAG : ", error.message);
