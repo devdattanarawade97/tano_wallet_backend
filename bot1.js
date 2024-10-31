@@ -537,7 +537,7 @@ bot.onText(/\/hey/, async (msg) => {
             }
             console.log("diff in min : ", diffInMinutes)
             //if the inactivity time is less than 1 then user will ask question
-            if (diffInMinutes <= 10 || actualLastUsedTime == null) {
+            if (diffInMinutes <= 1 || actualLastUsedTime == null) {
 
                 //openai query will be triggered
                 // const response = await askQuestionAboutPDF(userEmbeddings[chatId], question)
