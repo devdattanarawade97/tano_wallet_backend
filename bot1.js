@@ -528,10 +528,11 @@ bot.onText(/\/hey/, async (msg) => {
             let actualLastUsedTime = await queryLastUsedBotTimeFromPinata(telegramUsername);
             // console.log("actual last used time :", actualLastUsedTime);
             let diffInMinutes;
+
+            
             //initially user time will be set to null 
             if (actualLastUsedTime !== null) {
                 const timeDiff = currentTime.getTime() - new Date(actualLastUsedTime).getTime();
-
 
                 diffInMinutes = timeDiff / (1000 * 60);
             }
