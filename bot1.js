@@ -530,6 +530,7 @@ bot.onText(/\/hey/, async (msg) => {
             let diffInMinutes;
 
             
+            
             //initially user time will be set to null 
             if (actualLastUsedTime !== null) {
                 const timeDiff = currentTime.getTime() - new Date(actualLastUsedTime).getTime();
