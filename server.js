@@ -215,8 +215,7 @@ app.post('/generate-image', async (req, res) => {
             size: "1024x1024",
           });
          const image_url = response.data[0].url;
-        
- 
+      
       // Corrected: send the photo using 'photo' field, not 'text'
       await axios.post(`https://api.telegram.org/bot${TOKEN}/sendPhoto`, {
         chat_id: chatId,

@@ -155,6 +155,7 @@ bot.on('message', async (msg) => {
                                 }),
                             },
                         );
+
                         //====================================  backend server response=================================
                         //============================= agent response - use this for agentic response ======================== 
                         // const fetchModelResponse = await fetch(
@@ -640,8 +641,26 @@ bot.onText(/\/generate/, async (msg) => {
         //if the inactivity time is less than 1 then user will ask question
         if (diffInMinutes = undefined || diffInMinutes <= 1 || actualLastUsedTime == null) {
 
-            const imageResponse = await fetch(
-                `${PUBLIC_BACKEND_BASE_URI}/generate-image`,
+     
+            //-----------------------tano agent code------------------------
+            // const agentResponse = await fetch(
+            //     `http://127.0.0.1:8000/image-query`,
+            //     //  `http://localhost:3000/generate-image`,
+            //     {
+            //         method: "POST",
+            //         headers: {
+            //             "Content-Type": "application/json",
+            //         },
+            //         body: JSON.stringify({
+            //             user_message: msg_text,
+            //         }),
+            //     },
+            // );
+            // const response = agentResponse.content;
+            // console.log("agent response : ", response)
+            //-----------------------tano agent code------------------------
+                   const imageResponse = await fetch(
+                 `${PUBLIC_BACKEND_BASE_URI}/generate-image`,
                 //  `http://localhost:3000/generate-image`,
                 {
                     method: "POST",
@@ -651,11 +670,13 @@ bot.onText(/\/generate/, async (msg) => {
                     body: JSON.stringify({
 
                         chatId: chatId,
-                        msgText: msg_text,
+                        // msgText: msg_text,
+                        msgText: response,
                     }),
                 },
             );
-            const response = await imageResponse.json();
+         
+            // const response = await imageResponse.json();
             await updateUserDetailsToPinata(telegramUsername, currentTime, "");
 
             // await bot.sendMessage(chatId, response);
